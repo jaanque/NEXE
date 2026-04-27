@@ -1,0 +1,70 @@
+# --- SEGURIDAD Y SECRETOS (CRÍTICO) ---
+# Ignora cualquier archivo que contenga claves o configuraciones sensibles
+NEXE/Services/SupabaseConfig.swift
+*.env
+*.env.*
+*.p12
+*.cer
+*.cert
+*.mobileprovision
+
+# --- XCODE & BUILD ARTIFACTS ---
+# No subir archivos temporales de compilación o datos de sesión del usuario
+build/
+DerivedData/
+*.hmap
+*.ipa
+*.xcuserstate
+*.xcscmblueprint
+*.xccheckout
+*.moved-aside
+
+# Datos de usuario específicos (evita conflictos de merge en el .xcodeproj)
+xcuserdata/
+*.managed_metadata
+*.xcuserdatad
+*.xcworkspace/xcuserdata/
+*.xcodeproj/xcuserdata/
+*.xcodeproj/project.xcworkspace/xcuserdata/
+
+# --- SWIFT PACKAGE MANAGER ---
+# Ignora cachés de descarga y configuraciones locales de paquetes
+.build/
+.swiftpm/
+Packages/
+Package.resolved
+
+# --- COCOAPODS / CARTHAGE / FASTLANE ---
+# Si decides usarlos en el futuro, ya estarás protegido
+Pods/
+Podfile.lock
+Carthage/Build/
+Carthage/Checkouts/
+fastlane/report.xml
+fastlane/Preview.html
+fastlane/screenshots/**/*.png
+fastlane/test_output
+
+# --- SISTEMA (macOS) ---
+# Archivos invisibles que ensucian el repo
+.DS_Store
+.AppleDouble
+.LSOverride
+Icon
+.apdisk
+Network Trash Folder
+Temporary Items
+
+# --- EDITORES EXTERNOS (VSCode, JetBrains, etc) ---
+.vscode/
+.idea/
+*.swp
+*.lock
+*.orig
+
+# --- OTROS ---
+# Archivos de respaldo y temporales
+*~
+*.bak
+*.tmp
+*.log
