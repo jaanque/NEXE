@@ -1,28 +1,60 @@
 import SwiftUI
+import Auth
 
 struct NearbyStoreCardVerticalView: View {
+    @Environment(AuthViewModel.self) private var authViewModel
     let store: NearbyStoreItem
-    @State private var isFavorite = false
 
     var body: some View {
         NavigationLink(destination: StoreDetailView(store: store)) {
             VStack(alignment: .leading, spacing: 12) {
                 // Imagen panorámica
-                ZStack(alignment: .topTrailing) {
+                ZStack(alignment: .bottomLeading) {
                     DemoImage(urlString: store.imageURL ?? "", cornerRadius: 20)
                         .frame(height: 180)
                         .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
                     
-                    Button {
-                        isFavorite.toggle()
-                    } label: {
-                        Image(systemName: isFavorite ? "heart.fill" : "heart")
-                            .font(.system(size: 14, weight: .bold))
-                            .foregroundStyle(isFavorite ? .red : .white)
-                            .padding(8)
-                            .background(.black.opacity(0.3))
-                            .clipShape(Circle())
-                            .padding(10)
+                    // Logo circular pequeño overlay (Esquina inferior izquierda)
+                    ZStack {
+                        Circle()
+                            .fill(Color.white)
+                            .shadow(color: .black.opacity(0.15), radius: 4)
+                        
+                        if let logo = store.logoURL {
+                            DemoImage(urlString: logo, cornerRadius: 25)
+                                .clipShape(Circle())
+                                .padding(2)
+                        } else {
+                            Image(systemName: "storefront.fill")
+                                .font(.system(size: 12))
+                                .foregroundStyle(Color.brandGreen.opacity(0.3))
+                        }
+                    }
+                    .frame(width: 44, height: 44)
+                    .padding(12) // Espaciado desde los bordes de la esquina
+                    
+                    // Botón Favoritos (Esquina superior derecha)
+                    VStack {
+                        HStack {
+                            Spacer()
+                            Button {
+                                if let userId = authViewModel.currentUser?.id {
+                                    Task {
+                                        await FavoritesManager.shared.toggleFavorite(userId: userId, storeId: store.id)
+                                        UIImpactFeedbackGenerator(style: .medium).impactOccurred()
+                                    }
+                                }
+                            } label: {
+                                Image(systemName: FavoritesManager.shared.isStoreFavorite(store.id) ? "heart.fill" : "heart")
+                                    .font(.system(size: 14, weight: .bold))
+                                    .foregroundStyle(FavoritesManager.shared.isStoreFavorite(store.id) ? .red : .white)
+                                    .padding(8)
+                                    .background(.black.opacity(0.3))
+                                    .clipShape(Circle())
+                                    .padding(10)
+                            }
+                        }
+                        Spacer()
                     }
                 }
                 
@@ -55,13 +87,15 @@ struct NearbyStoreCardVerticalView: View {
                             .foregroundStyle(.secondary)
                     }
                     
-                    HStack(spacing: 4) {
-                        Image(systemName: "star.circle.fill")
-                            .font(.system(size: 14))
-                        Text("Reparte puntos NEXE")
-                            .font(.system(size: 14, weight: .semibold))
+                    if store.givesPoints {
+                        HStack(spacing: 4) {
+                            Image(systemName: "star.circle.fill")
+                                .font(.system(size: 14))
+                            Text("Reparte puntos NEXE")
+                                .font(.system(size: 14, weight: .semibold))
+                        }
+                        .foregroundStyle(Color.brandGreen)
                     }
-                    .foregroundStyle(Color.brandGreen)
                 }
                 .padding(.horizontal, 4)
             }

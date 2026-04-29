@@ -125,6 +125,9 @@ struct HomeView: View {
             animatePoints(to: authViewModel.userProfile?.points ?? 0)
             
             Task {
+                if let userId = authViewModel.currentUser?.id {
+                    await FavoritesManager.shared.fetchFavorites(userId: userId)
+                }
                 await fetchCategories()
                 await fetchStores()
                 await fetchProducts()
@@ -137,6 +140,11 @@ struct HomeView: View {
         .onChange(of: authViewModel.userProfile) { _, newProfile in
             if let points = newProfile?.points {
                 animatePoints(to: points)
+            }
+            if let userId = authViewModel.currentUser?.id {
+                Task {
+                    await FavoritesManager.shared.fetchFavorites(userId: userId)
+                }
             }
         }
     }

@@ -1,8 +1,9 @@
 import SwiftUI
+import Auth
 
 struct StoreProductCardView: View {
+    @Environment(AuthViewModel.self) private var authViewModel
     let product: ProductItem
-    @State private var isFavorite = false
     
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
@@ -15,11 +16,16 @@ struct StoreProductCardView: View {
                     .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
                 
                 Button {
-                    isFavorite.toggle()
+                    if let userId = authViewModel.currentUser?.id, let storeId = product.storeId {
+                        Task {
+                            await FavoritesManager.shared.toggleFavorite(userId: userId, storeId: storeId, productId: product.id)
+                            UIImpactFeedbackGenerator(style: .medium).impactOccurred()
+                        }
+                    }
                 } label: {
-                    Image(systemName: isFavorite ? "heart.fill" : "heart")
+                    Image(systemName: FavoritesManager.shared.isProductFavorite(product.id) ? "heart.fill" : "heart")
                         .font(.system(size: 12, weight: .bold))
-                        .foregroundStyle(isFavorite ? .red : .white)
+                        .foregroundStyle(FavoritesManager.shared.isProductFavorite(product.id) ? .red : .white)
                         .padding(8)
                         .background(.black.opacity(0.3))
                         .clipShape(Circle())

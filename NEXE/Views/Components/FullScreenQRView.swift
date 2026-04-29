@@ -22,7 +22,7 @@ struct FullScreenQRView: View {
                 EmojiPatternView(emoji: emoji)
             }
             
-            VStack(spacing: 30) {
+            VStack(spacing: 0) {
                 // CABECERA CONTROLES
                 HStack {
                     Button {
@@ -30,12 +30,16 @@ struct FullScreenQRView: View {
                             showControls.toggle()
                         }
                     } label: {
-                        Image(systemName: "paintpalette.fill")
-                            .font(.title3)
-                            .foregroundStyle(showControls ? Color.brandGreen : .secondary)
-                            .padding(10)
-                            .background(.ultraThinMaterial)
-                            .clipShape(Circle())
+                        HStack(spacing: 8) {
+                            Image(systemName: "paintpalette.fill")
+                            Text("Personalizar")
+                                .font(.subheadline.weight(.bold))
+                        }
+                        .padding(.vertical, 8)
+                        .padding(.horizontal, 16)
+                        .background(showControls ? Color.brandGreen.opacity(0.1) : Color.clear)
+                        .foregroundStyle(showControls ? Color.brandGreen : .secondary)
+                        .clipShape(Capsule())
                     }
                     
                     Spacer()
@@ -54,44 +58,65 @@ struct FullScreenQRView: View {
                 
                 Spacer()
                 
-                VStack(spacing: 24) {
-                    Text("Mi Identificación NEXE")
-                        .font(.title2.weight(.bold))
-                    
-                    if let qrImage = generateQRCode(from: userId) {
-                        Image(uiImage: qrImage)
-                            .interpolation(.none)
-                            .resizable()
-                            .frame(width: 260, height: 260)
-                            .padding(20)
-                            .background(Color.white)
-                            .clipShape(RoundedRectangle(cornerRadius: 30))
-                            .shadow(color: .black.opacity(0.1), radius: 20)
+                // CONTENIDO CENTRAL (CENTRADO)
+                VStack(spacing: 40) {
+                    VStack(spacing: 16) {
+                        Text("Mi Identificación NEXE")
+                            .font(.subheadline.weight(.bold))
+                            .tracking(1)
+                            .foregroundStyle(.secondary)
+                        
+                        if let qrImage = generateQRCode(from: userId) {
+                            Image(uiImage: qrImage)
+                                .interpolation(.none)
+                                .resizable()
+                                .frame(width: 260, height: 260)
+                                .padding(20)
+                                .background(Color.white)
+                                .clipShape(RoundedRectangle(cornerRadius: 32))
+                                .shadow(color: .black.opacity(0.1), radius: 25)
+                        }
                     }
                     
-                    HStack(alignment: .firstTextBaseline, spacing: 8) {
+                    VStack(spacing: 8) {
                         Text("\(points)")
-                            .font(.system(size: 54, weight: .black, design: .rounded))
-                        Text("pts")
-                            .font(.title2.weight(.bold))
+                            .font(.system(size: 64, weight: .black, design: .rounded))
+                        Text("PUNTOS ACUMULADOS")
+                            .font(.system(size: 12, weight: .bold))
+                            .tracking(2)
                             .foregroundStyle(Color.brandGreen)
                     }
                 }
-                .scaleEffect(showControls ? 0.95 : 1.0)
-                .animation(.spring(), value: showControls)
                 
                 Spacer()
                 
                 if showControls {
-                    // TOOLBAR DE PERSONALIZACIÓN
-                    VStack(spacing: 20) {
+                    // PANEL DE PERSONALIZACIÓN
+                    VStack(spacing: 24) {
                         customizationHeader
                         colorSelector
                         emojiSelector
+                        
+                        Button {
+                            saveSettings()
+                            withAnimation(.spring()) {
+                                showControls = false
+                            }
+                            UINotificationFeedbackGenerator().notificationOccurred(.success)
+                        } label: {
+                            Text("Guardar Cambios")
+                                .font(.headline)
+                                .foregroundStyle(.white)
+                                .frame(maxWidth: .infinity)
+                                .frame(height: 54)
+                                .background(Color.brandGreen)
+                                .clipShape(RoundedRectangle(cornerRadius: 16))
+                                .padding(.horizontal, 24)
+                        }
                     }
-                    .padding(.vertical, 20)
+                    .padding(.vertical, 24)
                     .background(.ultraThinMaterial)
-                    .clipShape(RoundedRectangle(cornerRadius: 30, style: .continuous))
+                    .clipShape(RoundedRectangle(cornerRadius: 32, style: .continuous))
                     .padding(.horizontal, 20)
                     .padding(.bottom, 20)
                     .transition(.move(edge: .bottom).combined(with: .opacity))
