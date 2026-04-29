@@ -24,6 +24,7 @@ struct ExploreView: View {
     @State private var selectedCategoryId: UUID? = nil
     @State private var nearbyStores: [NearbyStoreItem] = []
     @State private var flashOffers: [ProductItem] = []
+    @State private var curatedStores: [NearbyStoreItem] = []
     private let inspirations = InspirationItem.samples
     
     var body: some View {
@@ -31,36 +32,6 @@ struct ExploreView: View {
             Color.brandBackground.ignoresSafeArea()
             
             VStack(spacing: 0) {
-                // TÍTULO DE SECCIÓN UNIFICADO
-                HStack {
-                    Text("Explorar")
-                        .font(.system(size: 34, weight: .bold))
-                    Spacer()
-                    
-                    if isScrolled && !isSearchExpanded {
-                        Button {
-                            withAnimation(.spring(response: 0.4, dampingFraction: 0.8)) {
-                                isSearchExpanded = true
-                                isSearchFocused = true
-                            }
-                        } label: {
-                            Image(systemName: "magnifyingglass")
-                                .font(.system(size: 18, weight: .bold))
-                                .foregroundStyle(.primary)
-                                .frame(width: 44, height: 44)
-                                .background(Color.brandBackground)
-                                .clipShape(Circle())
-                                .overlay(Circle().stroke(Color.secondary.opacity(0.3), lineWidth: 1))
-                        }
-                        .transition(.scale.combined(with: .opacity))
-                    }
-                }
-                .padding(.horizontal, 24)
-                .padding(.top, 20)
-                .padding(.bottom, 12)
-                .animation(.spring(response: 0.4, dampingFraction: 0.8), value: isScrolled)
-                .animation(.spring(response: 0.4, dampingFraction: 0.8), value: isSearchExpanded)
-                
                 // ExploreHeader fijo cuando está expandido por scroll
                 if isSearchExpanded && isScrolled {
                     exploreHeader
@@ -123,8 +94,8 @@ struct ExploreView: View {
                                                 }
                                             }
                                         }
-                                        
-                                        // 3. Ofertas Flash
+
+                                        // 4. Ofertas Flash
                                         VStack(alignment: .leading, spacing: 16) {
                                             HStack {
                                                 Text("Ofertas Flash")
@@ -161,6 +132,43 @@ struct ExploreView: View {
                                             }
                                         }
                                         
+                                        // 5. NEXE Curated
+                                        VStack(alignment: .leading, spacing: 20) {
+                                            VStack(spacing: 8) {
+                                                HStack(spacing: 12) {
+                                                    Image(systemName: "laurel.leading")
+                                                        .foregroundStyle(Color.brandGreen)
+                                                    Text("NEXE Curated")
+                                                        .font(.title2.weight(.bold))
+                                                    Image(systemName: "laurel.trailing")
+                                                        .foregroundStyle(Color.brandGreen)
+                                                }
+                                                Text("Selección exclusiva de joyas locales")
+                                                    .font(.caption)
+                                                    .foregroundStyle(.secondary)
+                                            }
+                                            .frame(maxWidth: .infinity)
+                                            .padding(.horizontal, 16)
+                                            
+                                            ScrollView(.horizontal, showsIndicators: false) {
+                                                HStack(spacing: 20) {
+                                                    if curatedStores.isEmpty {
+                                                        CuratedCardView(title: "Artesanía Pura", store: "Taller Madera", image: "https://images.unsplash.com/photo-1581428982868-e410dd047a90?q=80&w=800&auto=format&fit=crop")
+                                                        CuratedCardView(title: "Café de Autor", store: "Origen Coffee", image: "https://images.unsplash.com/photo-1509042239860-f550ce710b93?q=80&w=800&auto=format&fit=crop")
+                                                    } else {
+                                                        ForEach(curatedStores) { store in
+                                                            CuratedCardView(
+                                                                title: store.description ?? "Selección NEXE",
+                                                                store: store.name,
+                                                                image: store.imageURL ?? "https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=800&q=80"
+                                                            )
+                                                        }
+                                                    }
+                                                }
+                                                .padding(.horizontal, 16)
+                                            }
+                                        }
+                                        
                                         // 5. Recién llegados
                                         if !nearbyStores.isEmpty {
                                             VStack(alignment: .leading, spacing: 20) {
@@ -182,15 +190,16 @@ struct ExploreView: View {
                                     searchOverlayContent
                                 }
                             }
+                            .refreshable {
+                                await fetchCategories()
+                                await fetchNewStores()
+                                await fetchProducts()
+                                await fetchCuratedStores()
+                                try? await Task.sleep(nanoseconds: 1_000_000_000)
+                            }
+                            .transition(.opacity.animation(.easeIn(duration: 0.4)))
                         }
                     }
-                    .refreshable {
-                        await fetchCategories()
-                        await fetchNewStores()
-                        await fetchProducts()
-                        try? await Task.sleep(nanoseconds: 1_000_000_000)
-                    }
-                    .transition(.opacity.animation(.easeIn(duration: 0.4)))
                 }
             }
         }
@@ -211,6 +220,7 @@ struct ExploreView: View {
                 await fetchCategories()
                 await fetchNewStores()
                 await fetchProducts()
+                await fetchCuratedStores()
                 withAnimation {
                     isLoading = false
                 }
@@ -253,9 +263,6 @@ struct ExploreView: View {
                                 Text("\(index + 1)").font(.subheadline.weight(.bold)).foregroundStyle(index < 3 ? Color.brandGreen : .secondary).frame(width: 24)
                                 Text(trend).font(.body)
                                 Spacer()
-                                if index < 3 {
-                                    Text("Trending").font(.system(size: 10, weight: .bold)).padding(.horizontal, 6).padding(.vertical, 2).background(Color.brandGreen.opacity(0.1)).foregroundStyle(Color.brandGreen).clipShape(Capsule())
-                                }
                             }
                             .padding(.horizontal, 16)
                             .contentShape(Rectangle())
@@ -312,6 +319,26 @@ struct ExploreView: View {
             }
         } catch {
             print("Error fetching products: \(error)")
+        }
+    }
+    
+    private func fetchCuratedStores() async {
+        do {
+            let fetched: [NearbyStoreItem] = try await SupabaseManager.shared.client
+                .from("stores")
+                .select()
+                .gte("rating", value: 4.5)
+                .limit(5)
+                .execute()
+                .value
+            
+            await MainActor.run {
+                withAnimation(.spring()) {
+                    self.curatedStores = fetched
+                }
+            }
+        } catch {
+            print("Error fetching curated stores: \(error)")
         }
     }
     
@@ -377,5 +404,50 @@ struct CategoryBlobView: View {
                 .foregroundStyle(isSelected ? category.color : .primary)
                 .lineLimit(1)
         }
+    }
+}
+
+// MARK: - Curated Components (Premium)
+struct CuratedCardView: View {
+    let title: String
+    let store: String
+    let image: String
+    
+    var body: some View {
+        VStack(spacing: 0) {
+            AsyncImage(url: URL(string: image)) { img in
+                img.resizable()
+                    .aspectRatio(contentMode: .fill)
+            } placeholder: {
+                Color.gray.opacity(0.1)
+            }
+            .frame(width: 200, height: 260)
+            .overlay(
+                LinearGradient(colors: [.black.opacity(0.6), .clear, .clear], startPoint: .bottom, endPoint: .top)
+            )
+            .overlay(alignment: .bottomLeading) {
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(title)
+                        .font(.headline)
+                        .foregroundStyle(.white)
+                    Text(store)
+                        .font(.caption)
+                        .foregroundStyle(.white.opacity(0.8))
+                }
+                .padding(16)
+            }
+            .clipShape(RoundedRectangle(cornerRadius: 28, style: .continuous))
+            .shadow(color: .black.opacity(0.1), radius: 10, x: 0, y: 5)
+        }
+    }
+}
+
+struct CustomCorner: Shape {
+    var corners: UIRectCorner
+    var radius: CGFloat
+    
+    func path(in rect: CGRect) -> Path {
+        let path = UIBezierPath(roundedRect: rect, byRoundingCorners: corners, cornerRadii: CGSize(width: radius, height: radius))
+        return Path(path.cgPath)
     }
 }

@@ -5,7 +5,6 @@ struct InspirationItem: Identifiable {
     let title: String
     let subtitle: String
     let images: [String]
-    let tag: String
     
     static let samples: [InspirationItem] = [
         .init(
@@ -15,8 +14,7 @@ struct InspirationItem: Identifiable {
                 "https://images.unsplash.com/photo-1509042239860-f550ce710b93?w=400&q=80",
                 "https://images.unsplash.com/photo-1495474472287-4d71bcdd2085?w=400&q=80",
                 "https://images.unsplash.com/photo-1442512595331-e89e73853f31?w=400&q=80"
-            ],
-            tag: "RECOMENDADO"
+            ]
         ),
         .init(
             title: "Ruta Burger",
@@ -25,8 +23,7 @@ struct InspirationItem: Identifiable {
                 "https://images.unsplash.com/photo-1568901346375-23c9450c58cd?w=400&q=80",
                 "https://images.unsplash.com/photo-1550547660-d9450f859349?w=400&q=80",
                 "https://images.unsplash.com/photo-1594212699903-ec8a3eca50f5?w=400&q=80"
-            ],
-            tag: "TENDENCIA"
+            ]
         ),
         .init(
             title: "Ruta Gourmet",
@@ -35,8 +32,7 @@ struct InspirationItem: Identifiable {
                 "https://images.unsplash.com/photo-1504674900247-0877df9cc836?w=400&q=80",
                 "https://images.unsplash.com/photo-1559339352-11d035aa65de?w=400&q=80",
                 "https://images.unsplash.com/photo-1476514525535-07fb3b4ae5f1?w=400&q=80"
-            ],
-            tag: "EDITORIAL"
+            ]
         )
     ]
 }
@@ -57,11 +53,6 @@ struct InspirationCardView: View {
             
             // CONTENIDO TEXTUAL ESTILO APPLE NEWS
             VStack(alignment: .leading, spacing: 6) {
-                Text(item.tag)
-                    .font(.system(size: 10, weight: .black))
-                    .kerning(1.2)
-                    .foregroundStyle(Color.brandGreen)
-                
                 Text(item.title)
                     .font(.system(size: 20, weight: .bold, design: .rounded))
                     .foregroundStyle(.primary)

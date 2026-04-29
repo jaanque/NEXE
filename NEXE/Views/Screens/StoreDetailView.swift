@@ -1,7 +1,7 @@
 import SwiftUI
-import Supabase
 import Auth
-import MapKit
+import Supabase
+
 
 struct StoreDetailView: View {
     @Environment(AuthViewModel.self) private var authViewModel
@@ -10,18 +10,6 @@ struct StoreDetailView: View {
     @State private var products: [ProductItem] = []
     @State private var isLoading = true
     @State private var scrollOffset: CGFloat = 0
-    
-    // Estado para el mapa nativo
-    @State private var region: MKCoordinateRegion
-    
-    init(store: NearbyStoreItem) {
-        self.store = store
-        // Coordenadas de ejemplo (Lleida) o reales si las hubiera
-        _region = State(initialValue: MKCoordinateRegion(
-            center: CLLocationCoordinate2D(latitude: 41.6176, longitude: 0.6200),
-            span: MKCoordinateSpan(latitudeDelta: 0.01, longitudeDelta: 0.01)
-        ))
-    }
     
     private let headerHeight: CGFloat = 280
     
@@ -273,12 +261,5 @@ struct RoundedCorner: Shape {
     func path(in rect: CGRect) -> Path {
         let path = UIBezierPath(roundedRect: rect, byRoundingCorners: corners, cornerRadii: CGSize(width: radius, height: radius))
         return Path(path.cgPath)
-    }
-}
-
-struct ViewOffsetKey: PreferenceKey {
-    static var defaultValue: CGFloat = 0
-    static func reduce(value: inout CGFloat, nextValue: () -> CGFloat) {
-        value += nextValue()
     }
 }

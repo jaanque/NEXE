@@ -56,8 +56,24 @@ class WeatherService: ObservableObject {
     }
     
     private func translateCondition(_ condition: String) -> String {
-        let dict = ["Sunny": "Soleado", "Clear": "Despejado", "Partly cloudy": "Nublado", "Cloudy": "Nublado", "Overcast": "Cubierto", "Rain": "Lluvia", "Light rain": "Lluvia ligera"]
-        return dict[condition] ?? condition
+        let dict = [
+            "sunny": "Soleado",
+            "clear": "Despejado",
+            "mostly clear": "Despejado",
+            "mostly sunny": "Soleado",
+            "partly cloudy": "Parcialmente nublado",
+            "cloudy": "Nublado",
+            "overcast": "Cubierto",
+            "mist": "Neblina",
+            "fog": "Niebla",
+            "rain": "Lluvia",
+            "light rain": "Lluvia ligera",
+            "heavy rain": "Lluvia intensa",
+            "thunderstorm": "Tormenta",
+            "drizzle": "Llovizna",
+            "snow": "Nieve"
+        ]
+        return dict[condition.lowercased()] ?? condition
     }
     
     private func mapIcon(_ condition: String) -> String {

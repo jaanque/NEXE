@@ -48,7 +48,7 @@ struct WeatherWidgetView: View {
                         .font(.system(size: 12, weight: .bold))
                         .textCase(.uppercase)
                     
-                    Text("H: \(weatherService.highTemp)° L: \(weatherService.lowTemp)°")
+                    Text("Máx: \(weatherService.highTemp)° Mín: \(weatherService.lowTemp)°")
                         .font(.system(size: 10, weight: .bold))
                         .opacity(0.8)
                 }
@@ -129,5 +129,13 @@ struct WeatherWidgetView: View {
         else if condition.contains("lluvia") || condition.contains("tormenta") { colors = [Color(red: 0.35, green: 0.4, blue: 0.5), Color(red: 0.15, green: 0.2, blue: 0.3)] }
         else { colors = [Color(red: 0.25, green: 0.6, blue: 0.95), Color(red: 0.15, green: 0.4, blue: 0.9)] }
         return LinearGradient(gradient: Gradient(colors: colors), startPoint: .top, endPoint: .bottom)
+    }
+}
+
+struct ScaleButtonStyle: ButtonStyle {
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .scaleEffect(configuration.isPressed ? 0.96 : 1)
+            .animation(.spring(response: 0.3, dampingFraction: 0.7), value: configuration.isPressed)
     }
 }

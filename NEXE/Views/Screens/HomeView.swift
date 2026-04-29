@@ -54,70 +54,61 @@ struct HomeView: View {
     
     let onExploreTap: () -> Void
 
+    private var filteredStores: [NearbyStoreItem] {
+        if let selectedId = selectedCategoryId {
+            return nearbyStores.filter { $0.categoryId == selectedId }
+        }
+        return nearbyStores
+    }
+
     var body: some View {
         ZStack {
             Color.brandBackground.ignoresSafeArea()
             
-            VStack(spacing: 0) {
-                // TÍTULO DE SECCIÓN UNIFICADO
-                HStack {
-                    Text("Inicio")
-                        .font(.system(size: 34, weight: .bold))
-                    Spacer()
-                }
-                .padding(.horizontal, 24)
-                .padding(.top, 20)
-                .padding(.bottom, 12)
-                
-                addressHeader
-                    .padding(.horizontal, 16)
-                    .padding(.bottom, 12)
-                    .background(Color.brandBackground)
-                    .offset(y: isAppearing ? 0 : -10)
-                    .opacity(isAppearing ? 1 : 0)
-                    .zIndex(1)
-
-                if isLoading {
-                    HomeSkeletonView()
-                        .transition(.opacity.animation(.easeOut(duration: 0.4)))
-                } else {
-                    ScrollView(.vertical, showsIndicators: false) {
-                        VStack(spacing: 20) { // Espaciado unificado
-                            HomeFilterChipsView()
-                                .entranceAnimation(delay: 0.05, isAppearing: isAppearing)
-                            
-                            if !categories.isEmpty {
-                                categoryScrollSection
-                                    .entranceAnimation(delay: 0.1, isAppearing: isAppearing)
-                            }
-                            
-                            Group {
-                                flashOffersSection
-                                rewardPointsSection
-                                forYouSection
-                                nearbyVerticalSection
-                            }
-                            .entranceAnimation(delay: 0.15, isAppearing: isAppearing)
+            if isLoading {
+                HomeSkeletonView()
+                    .transition(.opacity.animation(.easeOut(duration: 0.4)))
+            } else {
+                ScrollView(.vertical, showsIndicators: false) {
+                    VStack(spacing: 20) {
+                        addressHeader
+                            .padding(.horizontal, 16)
+                            .padding(.top, 12)
+                        
+                        HomeFilterChipsView()
+                            .entranceAnimation(delay: 0.05, isAppearing: isAppearing)
+                        
+                        if !categories.isEmpty {
+                            categoryScrollSection
+                                .entranceAnimation(delay: 0.1, isAppearing: isAppearing)
                         }
-                        .padding(.bottom, 28)
+                        
+                        Group {
+                            flashOffersSection
+                            rewardPointsSection
+                            forYouSection
+                            nearbyVerticalSection
+                        }
+                        .entranceAnimation(delay: 0.15, isAppearing: isAppearing)
                     }
-                    .refreshable {
-                        let generator = UIImpactFeedbackGenerator(style: .medium)
-                        generator.impactOccurred()
-                        await fetchCategories()
-                        await fetchStores()
-                        await fetchProducts()
-                        try? await Task.sleep(nanoseconds: 500_000_000)
-                        let successGenerator = UINotificationFeedbackGenerator()
-                        successGenerator.notificationOccurred(.success)
-                    }
-                    .scrollBounceBehavior(.basedOnSize)
-                    .background(Color.brandBackground)
-                    .transition(.opacity.animation(.easeIn(duration: 0.4)))
+                    .padding(.bottom, 28)
                 }
+                .refreshable {
+                    let generator = UIImpactFeedbackGenerator(style: .medium)
+                    generator.impactOccurred()
+                    await fetchCategories()
+                    await fetchStores()
+                    await fetchProducts()
+                    try? await Task.sleep(nanoseconds: 500_000_000)
+                    let successGenerator = UINotificationFeedbackGenerator()
+                    successGenerator.notificationOccurred(.success)
+                }
+                .scrollBounceBehavior(.basedOnSize)
+                .background(Color.brandBackground)
+                .transition(.opacity.animation(.easeIn(duration: 0.4)))
             }
         }
-        .navigationBarHidden(true)
+        .navigationBarTitleDisplayMode(.large)
         .onAppear {
             withAnimation(.spring(response: 0.45, dampingFraction: 0.8)) {
                 isAppearing = true
@@ -146,6 +137,24 @@ struct HomeView: View {
                     await FavoritesManager.shared.fetchFavorites(userId: userId)
                 }
             }
+        }
+    }
+
+    private var addressHeader: some View {
+        HStack(spacing: 12) {
+            Button(action: onExploreTap) {
+                HStack(spacing: 8) {
+                    Image(systemName: "magnifyingglass").foregroundStyle(.primary)
+                    Text("Buscar en NEXE...").font(.subheadline).foregroundStyle(.secondary)
+                    Spacer()
+                }.padding(.horizontal, 14).frame(height: 44).background(Color.brandBackground).clipShape(Capsule()).overlay(Capsule().stroke(Color.secondary.opacity(0.3), lineWidth: 1))
+            }.buttonStyle(.plain)
+            Button { } label: {
+                HStack(spacing: 4) {
+                    Image(systemName: "star.circle.fill").foregroundStyle(.yellow)
+                    Text("\(animatedPoints)").font(.subheadline.weight(.semibold).monospacedDigit()).foregroundStyle(.primary).contentTransition(.numericText())
+                }.padding(.horizontal, 10).frame(height: 44).background(Color.brandBackground).clipShape(Capsule()).overlay(Capsule().stroke(Color.secondary.opacity(0.3), lineWidth: 1))
+            }.buttonStyle(.plain)
         }
     }
 
@@ -314,31 +323,36 @@ struct HomeView: View {
     
     private var nearbyVerticalSection: some View {
         VStack(alignment: .leading, spacing: 20) {
-            Text("Cerca de ti").font(.title2.weight(.bold)).padding(.horizontal, 16)
-            LazyVStack(spacing: 24) {
-                ForEach(nearbyStores) { store in NearbyStoreCardVerticalView(store: store).padding(.horizontal, 16) }
+            Text(selectedCategoryId == nil ? "Cerca de ti" : "Resultados")
+                .font(.title2.weight(.bold))
+                .padding(.horizontal, 16)
+            
+            if filteredStores.isEmpty {
+                VStack(spacing: 12) {
+                    Image(systemName: "storefront")
+                        .font(.largeTitle)
+                        .foregroundStyle(.tertiary)
+                    Text("No hay locales en esta categoría")
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+                }
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 40)
+            } else {
+                LazyVStack(spacing: 24) {
+                    ForEach(filteredStores) { store in 
+                        NearbyStoreCardVerticalView(store: store)
+                            .padding(.horizontal, 16) 
+                    }
+                }
             }
         }
     }
 
-    private var addressHeader: some View {
-        HStack(spacing: 12) {
-            Button(action: onExploreTap) {
-                HStack(spacing: 8) {
-                    Image(systemName: "magnifyingglass").foregroundStyle(.primary)
-                    Text("Buscar en NEXE...").font(.subheadline).foregroundStyle(.secondary)
-                    Spacer()
-                }.padding(.horizontal, 14).frame(height: 44).background(Color.brandBackground).clipShape(Capsule()).overlay(Capsule().stroke(Color.secondary.opacity(0.3), lineWidth: 1))
-            }.buttonStyle(.plain)
-            Button { } label: {
-                HStack(spacing: 4) {
-                    Image(systemName: "star.circle.fill").foregroundStyle(.yellow)
-                    Text("\(animatedPoints)").font(.subheadline.weight(.semibold).monospacedDigit()).foregroundStyle(.primary).contentTransition(.numericText())
-                }.padding(.horizontal, 10).frame(height: 44).background(Color.brandBackground).clipShape(Capsule()).overlay(Capsule().stroke(Color.secondary.opacity(0.3), lineWidth: 1))
-            }.buttonStyle(.plain)
-        }
-    }
 }
+
+
+// MARK: - Premium Components
 
 extension View {
     func entranceAnimation(delay: Double, isAppearing: Bool) -> some View {

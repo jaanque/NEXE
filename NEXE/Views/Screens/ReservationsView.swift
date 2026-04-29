@@ -8,15 +8,6 @@ struct ReservationsView: View {
             Color.brandBackground.ignoresSafeArea()
             
             VStack(spacing: 0) {
-                // Cabecera Simple
-                HStack {
-                    Text("Reservas")
-                        .font(.system(size: 34, weight: .bold))
-                    Spacer()
-                }
-                .padding(.horizontal, 24)
-                .padding(.top, 20)
-                
                 Spacer()
                 
                 // EMPTY STATE
@@ -57,7 +48,6 @@ struct ReservationsView: View {
                     .padding(.top, 10)
                 }
                 
-                Spacer()
                 Spacer()
             }
             .navigationBarHidden(true)

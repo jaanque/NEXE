@@ -1,7 +1,6 @@
 import SwiftUI
 
 struct HomeFilterChipsView: View {
-    @State private var deliveryMode = 0 // 0 for Delivery, 1 for Pickup
     
     var body: some View {
         ScrollView(.horizontal, showsIndicators: false) {

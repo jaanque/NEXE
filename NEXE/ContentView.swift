@@ -32,7 +32,7 @@ struct ContentView: View {
                     }
                 }
                 .tabItem {
-                    Label("Inicio", systemImage: "house")
+                    Image(systemName: "house")
                 }
                 .tag(AppTab.home)
 
@@ -40,7 +40,7 @@ struct ContentView: View {
                     ExploreView(focusToken: exploreFocusToken)
                 }
                 .tabItem {
-                    Label("Explorar", systemImage: "magnifyingglass")
+                    Image(systemName: "magnifyingglass")
                 }
                 .tag(AppTab.explore)
 
@@ -48,15 +48,16 @@ struct ContentView: View {
                     FavoritesView(selectedTab: $selectedTab)
                 }
                 .tabItem {
-                    Label("Favoritos", systemImage: "heart")
+                    Image(systemName: "heart")
                 }
+                .badge(FavoritesManager.shared.newCount)
                 .tag(AppTab.favorites)
 
                 NavigationStack {
                     ReservationsView(selectedTab: $selectedTab)
                 }
                 .tabItem {
-                    Label("Reservas", systemImage: "calendar")
+                    Image(systemName: "calendar")
                 }
                 .tag(AppTab.reservations)
 
@@ -64,7 +65,7 @@ struct ContentView: View {
                     ProfileView()
                 }
                 .tabItem {
-                    Label("Perfil", systemImage: "person.crop.circle")
+                    Image(systemName: "person.crop.circle")
                 }
                 .tag(AppTab.profile)
             }

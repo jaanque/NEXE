@@ -5,8 +5,8 @@ import CoreImage.CIFilterBuiltins
 struct ProfileView: View {
     @Environment(AuthViewModel.self) private var authViewModel
     @State private var showAuthSheet = false
-    @State private var showSettingsSheet = false
     @State private var showFullQR = false
+    
     var body: some View {
         NavigationStack {
             ZStack {
@@ -14,45 +14,76 @@ struct ProfileView: View {
                 
                 ScrollView {
                     VStack(spacing: 32) {
-                        // CABECERA
-                        HStack(alignment: .center) {
-                            Text("Perfil")
-                                .font(.system(size: 34, weight: .bold))
-                            Spacer()
-                            
-                            Button {
-                                showSettingsSheet = true
-                            } label: {
-                                if let user = authViewModel.currentUser {
-                                    Circle()
-                                        .fill(Color.brandGreen.opacity(0.1))
-                                        .frame(width: 46, height: 46)
-                                        .overlay(
-                                            Text(user.email?.prefix(1).uppercased() ?? "U")
-                                                .font(.system(size: 20, weight: .bold))
-                                                .foregroundStyle(Color.brandGreen)
-                                        )
-                                } else {
-                                    Image(systemName: "person.circle.fill")
-                                        .font(.system(size: 46))
-                                        .foregroundStyle(.secondary.opacity(0.3))
-                                }
-                            }
-                        }
-                        .padding(.top, 20)
+                        // ESPACIADO INICIAL (Sustituye al título eliminado)
+                        Spacer()
+                            .frame(height: 10)
                         
                         if let user = authViewModel.currentUser {
+                            VStack(spacing: 16) {
+                                Circle()
+                                    .fill(Color.brandGreen.opacity(0.1))
+                                    .frame(width: 90, height: 90)
+                                    .overlay(
+                                        Text(user.email?.prefix(1).uppercased() ?? "U")
+                                            .font(.system(size: 38, weight: .bold))
+                                            .foregroundStyle(Color.brandGreen)
+                                    )
+                                
+                                VStack(spacing: 4) {
+                                    Text(user.email ?? "Usuario NEXE")
+                                        .font(.title3.weight(.bold))
+                                    Text("Miembro desde \(getMemberDate())")
+                                        .font(.subheadline)
+                                        .foregroundStyle(.secondary)
+                                }
+                            }
+                            
                             pointsBanner(user: user)
                                 .onTapGesture {
                                     UIImpactFeedbackGenerator(style: .medium).impactOccurred()
                                     showFullQR = true
                                 }
+                            
+                            VStack(spacing: 32) {
+                                activitySection
+                                clubSection
+                                
+                                ProfileSection(title: "Mi Cuenta") {
+                                    ProfileRow(icon: "person.fill", title: "Editar Perfil", subtitle: "Nombre, teléfono y dirección")
+                                    ProfileRow(icon: "envelope.fill", title: "Email", subtitle: authViewModel.currentUser?.email ?? "")
+                                    ProfileRow(icon: "lock.fill", title: "Seguridad", subtitle: "Contraseña y acceso")
+                                }
+                                
+                                ProfileSection(title: "Preferencias") {
+                                    ProfileRow(icon: "bell.fill", title: "Notificaciones", subtitle: "Avisos de ofertas y puntos")
+                                    ProfileRow(icon: "creditcard.fill", title: "Pagos", subtitle: "Métodos de pago guardados")
+                                }
+                                
+                                ProfileSection(title: "Legal") {
+                                    ProfileRow(icon: "doc.text.fill", title: "Términos y Condiciones", subtitle: "Uso de la plataforma")
+                                    ProfileRow(icon: "shield.fill", title: "Privacidad", subtitle: "Gestión de tus datos")
+                                }
+                                
+                                Button {
+                                    Task {
+                                        await authViewModel.signOut()
+                                    }
+                                } label: {
+                                    HStack(spacing: 12) {
+                                        Image(systemName: "rectangle.portrait.and.arrow.right")
+                                        Text("Cerrar Sesión")
+                                    }
+                                    .font(.headline)
+                                    .foregroundStyle(.red)
+                                    .frame(maxWidth: .infinity)
+                                    .frame(height: 56)
+                                    .background(Color.red.opacity(0.08))
+                                    .clipShape(RoundedRectangle(cornerRadius: 16))
+                                }
+                            }
                         } else {
                             loggedOutHeader
                         }
-                        
-                        activitySection
-                        clubSection
                         
                         versionInfo
                     }
@@ -66,9 +97,6 @@ struct ProfileView: View {
                     SignUpView(viewModel: authViewModel)
                 }
             }
-            .sheet(isPresented: $showSettingsSheet) {
-                PersonalSettingsView()
-            }
             .fullScreenCover(isPresented: $showFullQR) {
                 if let user = authViewModel.currentUser {
                     FullScreenQRView(userId: user.id.uuidString, points: authViewModel.userProfile?.points ?? 0)
@@ -78,6 +106,15 @@ struct ProfileView: View {
     }
     
     // MARK: - Components
+    
+    private func getMemberDate() -> String {
+        if let createdAt = authViewModel.currentUser?.createdAt {
+            let formatter = DateFormatter()
+            formatter.dateFormat = "yyyy"
+            return formatter.string(from: createdAt)
+        }
+        return "2024"
+    }
     
     private func pointsBanner(user: User) -> some View {
         HStack(spacing: 20) {
@@ -162,7 +199,7 @@ struct ProfileView: View {
         let context = CIContext()
         let filter = CIFilter.qrCodeGenerator()
         filter.message = Data(string.utf8)
-
+ 
         if let outputImage = filter.outputImage {
             if let cgImage = context.createCGImage(outputImage, from: outputImage.extent) {
                 return UIImage(cgImage: cgImage)
@@ -196,9 +233,9 @@ struct ProfileView: View {
         }
     }
 }
-
+ 
 // MARK: - Components
-
+ 
 struct ProfileSection<Content: View>: View {
     let title: String
     let content: Content
@@ -226,7 +263,7 @@ struct ProfileSection<Content: View>: View {
         }
     }
 }
-
+ 
 struct ProfileRow: View {
     let icon: String
     let title: String
@@ -265,20 +302,5 @@ struct ProfileRow: View {
     }
 }
 
-struct HandDrawnArrowUp: Shape {
-    func path(in rect: CGRect) -> Path {
-        var path = Path()
-        path.move(to: CGPoint(x: rect.midX, y: rect.maxY))
-        path.addLine(to: CGPoint(x: rect.midX, y: rect.minY))
-        
-        // Punta
-        path.move(to: CGPoint(x: rect.midX, y: rect.minY))
-        path.addLine(to: CGPoint(x: rect.midX - 4, y: rect.minY + 4))
-        path.move(to: CGPoint(x: rect.midX, y: rect.minY))
-        path.addLine(to: CGPoint(x: rect.midX + 4, y: rect.minY + 4))
-        
-        return path
-    }
-}
 
 
