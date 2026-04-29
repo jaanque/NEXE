@@ -10,6 +10,7 @@ struct ProductItem: Codable, Identifiable {
     let rewardPoints: Int
     let isForYou: Bool
     let category: String?
+    let storeId: UUID?
     
     enum CodingKeys: String, CodingKey {
         case id
@@ -21,6 +22,7 @@ struct ProductItem: Codable, Identifiable {
         case rewardPoints = "reward_points"
         case isForYou = "is_for_you"
         case category
+        case storeId = "store_id"
     }
     
     // Fallbacks estáticos

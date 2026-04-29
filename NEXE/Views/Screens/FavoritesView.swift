@@ -59,6 +59,7 @@ struct FavoritesView: View {
                 Spacer()
                 Spacer()
             }
+            .navigationBarHidden(true)
         }
     }
 }

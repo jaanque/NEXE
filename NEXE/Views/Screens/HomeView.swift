@@ -117,6 +117,7 @@ struct HomeView: View {
                 }
             }
         }
+        .navigationBarHidden(true)
         .onAppear {
             withAnimation(.spring(response: 0.45, dampingFraction: 0.8)) {
                 isAppearing = true

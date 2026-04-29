@@ -60,6 +60,7 @@ struct ReservationsView: View {
                 Spacer()
                 Spacer()
             }
+            .navigationBarHidden(true)
         }
     }
 }

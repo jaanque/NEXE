@@ -194,6 +194,7 @@ struct ExploreView: View {
                 }
             }
         }
+        .navigationBarHidden(true)
         .coordinateSpace(name: "exploreScroll")
         .onPreferenceChange(ScrollOffsetPreferenceKey.self) { offset in
             let threshold: CGFloat = -60

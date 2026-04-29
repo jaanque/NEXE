@@ -1,108 +1,140 @@
 import SwiftUI
 import Supabase
+import CoreImage.CIFilterBuiltins
 
 struct ProfileView: View {
     @Environment(AuthViewModel.self) private var authViewModel
     @State private var showAuthSheet = false
-    
+    @State private var showSettingsSheet = false
+    @State private var showFullQR = false
     var body: some View {
         NavigationStack {
             ZStack {
                 Color.brandBackground.ignoresSafeArea()
                 
                 ScrollView {
-                    VStack(spacing: 24) {
-                    // TÍTULO DE SECCIÓN UNIFICADO
-                    HStack {
-                        Text("Perfil")
-                            .font(.system(size: 34, weight: .bold))
-                        Spacer()
-                    }
-                    .padding(.horizontal, 24)
-                    .padding(.top, 20)
-                    
-                    if let user = authViewModel.currentUser {
-                        loggedInHeader(user: user)
-                    } else {
-                        loggedOutHeader
-                    }
-                    
                     VStack(spacing: 32) {
+                        // CABECERA
+                        HStack(alignment: .center) {
+                            Text("Perfil")
+                                .font(.system(size: 34, weight: .bold))
+                            Spacer()
+                            
+                            Button {
+                                showSettingsSheet = true
+                            } label: {
+                                if let user = authViewModel.currentUser {
+                                    Circle()
+                                        .fill(Color.brandGreen.opacity(0.1))
+                                        .frame(width: 46, height: 46)
+                                        .overlay(
+                                            Text(user.email?.prefix(1).uppercased() ?? "U")
+                                                .font(.system(size: 20, weight: .bold))
+                                                .foregroundStyle(Color.brandGreen)
+                                        )
+                                } else {
+                                    Image(systemName: "person.circle.fill")
+                                        .font(.system(size: 46))
+                                        .foregroundStyle(.secondary.opacity(0.3))
+                                }
+                            }
+                        }
+                        .padding(.top, 20)
+                        
+                        if let user = authViewModel.currentUser {
+                            pointsBanner(user: user)
+                                .onTapGesture {
+                                    UIImpactFeedbackGenerator(style: .medium).impactOccurred()
+                                    showFullQR = true
+                                }
+                        } else {
+                            loggedOutHeader
+                        }
+                        
                         activitySection
                         clubSection
-                        settingsSection
-                        
-                        if authViewModel.currentUser != nil {
-                            logoutButton
-                        }
                         
                         versionInfo
                     }
-                    .padding(.top, 8)
+                    .padding(.horizontal, 24)
+                    .padding(.bottom, 32)
                 }
-                .padding(.bottom, 32)
             }
-        }
-        .sheet(isPresented: $showAuthSheet) {
+            .navigationBarHidden(true)
+            .sheet(isPresented: $showAuthSheet) {
                 NavigationStack {
                     SignUpView(viewModel: authViewModel)
                 }
             }
+            .sheet(isPresented: $showSettingsSheet) {
+                PersonalSettingsView()
+            }
+            .fullScreenCover(isPresented: $showFullQR) {
+                if let user = authViewModel.currentUser {
+                    FullScreenQRView(userId: user.id.uuidString, points: authViewModel.userProfile?.points ?? 0)
+                }
+            }
         }
     }
     
-    // MARK: - Sections
+    // MARK: - Components
     
-    private func loggedInHeader(user: User) -> some View {
-        VStack(spacing: 16) {
-            Circle()
-                .fill(Color.brandGreen.opacity(0.1))
-                .frame(width: 80, height: 80)
-                .overlay(
-                    Text(user.email?.prefix(1).uppercased() ?? "U")
-                        .font(.system(size: 32, weight: .bold))
-                        .foregroundStyle(Color.brandGreen)
-                )
-            
-            VStack(spacing: 4) {
-                Text(user.email ?? "Usuario")
-                    .font(.headline)
-                Text("Miembro desde 2024")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-            }
-            
-            // Tarjeta de Puntos Destacada
-            HStack {
-                VStack(alignment: .leading, spacing: 4) {
-                    Text("Puntos Disponibles")
-                        .font(.caption)
-                        .foregroundStyle(.white.opacity(0.8))
-                    Text("\(authViewModel.userProfile?.points ?? 0) NEXE Puntos")
-                        .font(.title3.weight(.bold))
-                        .foregroundStyle(.white)
+    private func pointsBanner(user: User) -> some View {
+        HStack(spacing: 20) {
+            // QR Compacto
+            ZStack {
+                RoundedRectangle(cornerRadius: 12)
+                    .fill(.white)
+                
+                if let qrImage = generateQRCode(from: user.id.uuidString) {
+                    Image(uiImage: qrImage)
+                        .interpolation(.none)
+                        .resizable()
+                        .frame(width: 42, height: 42)
+                        .padding(4)
                 }
-                Spacer()
-                Image(systemName: "star.circle.fill")
-                    .font(.title)
-                    .foregroundStyle(.yellow)
             }
-            .padding(20)
-            .background(
-                RoundedRectangle(cornerRadius: 16)
-                    .fill(Color.brandGreen)
-            )
-            .padding(.horizontal, 16)
+            .frame(width: 50, height: 50)
+            
+            // Puntos
+            VStack(alignment: .leading, spacing: 0) {
+                Text("\(authViewModel.userProfile?.points ?? 0)")
+                    .font(.system(size: 28, weight: .black, design: .rounded))
+                Text("Puntos acumulados")
+                    .font(.system(size: 11, weight: .medium))
+                    .opacity(0.8)
+            }
+            .foregroundStyle(.white)
+            
+            Spacer()
+            
+            // Nivel y Acción
+            HStack(spacing: 4) {
+                Text("BRONCE")
+                    .font(.system(size: 10, weight: .bold))
+                    .padding(.horizontal, 8)
+                    .padding(.vertical, 4)
+                    .background(.white.opacity(0.15))
+                    .clipShape(Capsule())
+                
+                Image(systemName: "chevron.right")
+                    .font(.system(size: 10, weight: .bold))
+                    .opacity(0.5)
+            }
+            .foregroundStyle(.white)
         }
-        .padding(.top, 10)
+        .padding(.vertical, 12)
+        .padding(.horizontal, 16)
+        .background(
+            LinearGradient(colors: [Color.brandGreen, Color.brandGreen.opacity(0.9)], 
+                           startPoint: .leading, endPoint: .trailing)
+        )
+        .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
+        .shadow(color: Color.brandGreen.opacity(0.2), radius: 8, x: 0, y: 4)
     }
     
     private var loggedOutHeader: some View {
         VStack(spacing: 20) {
-            Image(systemName: "person.circle.fill")
-                .font(.system(size: 64))
-                .foregroundStyle(.secondary.opacity(0.3))
-            
             VStack(spacing: 8) {
                 Text("Únete al Club Local")
                     .font(.title3.weight(.bold))
@@ -110,25 +142,33 @@ struct ProfileView: View {
                     .font(.subheadline)
                     .foregroundStyle(.secondary)
                     .multilineTextAlignment(.center)
-                    .padding(.horizontal, 40)
             }
             
-            VStack(spacing: 12) {
-                Button {
-                    showAuthSheet = true
-                } label: {
-                    Text("Iniciar Sesión / Crear Cuenta")
-                        .font(.headline)
-                        .foregroundStyle(.white)
-                        .frame(maxWidth: .infinity)
-                        .frame(height: 50)
-                        .background(Color.brandGreen)
-                        .clipShape(RoundedRectangle(cornerRadius: 12))
-                }
+            Button {
+                showAuthSheet = true
+            } label: {
+                Text("Iniciar Sesión / Crear Cuenta")
+                    .font(.headline)
+                    .foregroundStyle(.white)
+                    .frame(maxWidth: .infinity)
+                    .frame(height: 50)
+                    .background(Color.brandGreen)
+                    .clipShape(RoundedRectangle(cornerRadius: 12))
             }
-            .padding(.horizontal, 32)
         }
-        .padding(.top, 20)
+    }
+    
+    private func generateQRCode(from string: String) -> UIImage? {
+        let context = CIContext()
+        let filter = CIFilter.qrCodeGenerator()
+        filter.message = Data(string.utf8)
+
+        if let outputImage = filter.outputImage {
+            if let cgImage = context.createCGImage(outputImage, from: outputImage.extent) {
+                return UIImage(cgImage: cgImage)
+            }
+        }
+        return nil
     }
     
     private var activitySection: some View {
@@ -146,37 +186,14 @@ struct ProfileView: View {
         }
     }
     
-    private var settingsSection: some View {
-        ProfileSection(title: "Configuración") {
-            ProfileRow(icon: "person.fill", title: "Datos Personales", subtitle: "Gestionar mi cuenta")
-            ProfileRow(icon: "bell.fill", title: "Notificaciones", subtitle: "Avisos de ofertas y puntos")
-            ProfileRow(icon: "questionmark.circle.fill", title: "Ayuda y Soporte", subtitle: "Preguntas frecuentes")
-        }
-    }
-    
-    private var logoutButton: some View {
-        Button {
-            Task { await authViewModel.signOut() }
-        } label: {
-            HStack {
-                Image(systemName: "rectangle.portrait.and.arrow.right")
-                Text("Cerrar Sesión")
-            }
-            .font(.headline)
-            .foregroundStyle(.red)
-            .frame(maxWidth: .infinity)
-            .padding()
-            .background(Color.red.opacity(0.1))
-            .clipShape(RoundedRectangle(cornerRadius: 12))
-            .padding(.horizontal, 16)
-        }
-    }
-    
     private var versionInfo: some View {
-        Text("Versión 1.0.0 (BETA)")
-            .font(.caption2)
-            .foregroundStyle(.secondary)
-            .padding(.top, 8)
+        HStack {
+            Spacer()
+            Text("Versión 1.0.0 (BETA)")
+                .font(.caption2)
+                .foregroundStyle(.secondary)
+            Spacer()
+        }
     }
 }
 
@@ -196,7 +213,6 @@ struct ProfileSection<Content: View>: View {
             Text(title)
                 .font(.subheadline.weight(.bold))
                 .foregroundStyle(.secondary)
-                .padding(.horizontal, 16)
             
             VStack(spacing: 0) {
                 content
@@ -207,7 +223,6 @@ struct ProfileSection<Content: View>: View {
                 RoundedRectangle(cornerRadius: 16)
                     .stroke(Color.secondary.opacity(0.1), lineWidth: 1)
             )
-            .padding(.horizontal, 16)
         }
     }
 }
@@ -249,3 +264,21 @@ struct ProfileRow: View {
         .buttonStyle(.plain)
     }
 }
+
+struct HandDrawnArrowUp: Shape {
+    func path(in rect: CGRect) -> Path {
+        var path = Path()
+        path.move(to: CGPoint(x: rect.midX, y: rect.maxY))
+        path.addLine(to: CGPoint(x: rect.midX, y: rect.minY))
+        
+        // Punta
+        path.move(to: CGPoint(x: rect.midX, y: rect.minY))
+        path.addLine(to: CGPoint(x: rect.midX - 4, y: rect.minY + 4))
+        path.move(to: CGPoint(x: rect.midX, y: rect.minY))
+        path.addLine(to: CGPoint(x: rect.midX + 4, y: rect.minY + 4))
+        
+        return path
+    }
+}
+
+
