@@ -182,6 +182,18 @@ struct HomeView: View {
                                     selectedCategoryId = category.id
                                 }
                             }
+                            
+                            // Mostrar skeleton brevemente para carga "junta"
+                            isFilterLoading = true
+                            Task {
+                                try? await Task.sleep(nanoseconds: 400_000_000) // 0.4s
+                                await MainActor.run {
+                                    withAnimation(.easeInOut(duration: 0.3)) {
+                                        isFilterLoading = false
+                                    }
+                                }
+                            }
+                            
                             UISelectionFeedbackGenerator().selectionChanged()
                         }
                 }
@@ -233,6 +245,7 @@ struct HomeView: View {
                     }
                 }
             }
+        }
         .animation(.easeInOut(duration: 0.3), value: isFilterLoading)
         .transition(.opacity)
     }
