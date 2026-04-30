@@ -1,43 +1,7 @@
 import SwiftUI
 import Supabase
 
-// MARK: - Blob Shape (Gota Suave y Redondeada)
-struct BlobShape: Shape {
-    let seed: Int
-    
-    func path(in rect: CGRect) -> Path {
-        var path = Path()
-        let width = rect.width
-        let height = rect.height
-        let center = CGPoint(x: width / 2, y: height / 2)
-        
-        let points = 8
-        var vertices: [CGPoint] = []
-        
-        for i in 0..<points {
-            let angle = Double(i) * (2.0 * .pi / Double(points))
-            let randomValue = Double((abs((seed + i * 53).hashValue) % 100)) / 100.0
-            let radius = (width / 2) * (0.8 + (randomValue * 0.2)) 
-            
-            let x = center.x + CGFloat(cos(angle)) * radius
-            let y = center.y + CGFloat(sin(angle)) * radius
-            vertices.append(CGPoint(x: x, y: y))
-        }
-        
-        path.move(to: CGPoint(x: (vertices[points-1].x + vertices[0].x) / 2, 
-                             y: (vertices[points-1].y + vertices[0].y) / 2))
-        
-        for i in 0..<points {
-            let current = vertices[i]
-            let next = vertices[(i + 1) % points]
-            let mid = CGPoint(x: (current.x + next.x) / 2, y: (current.y + next.y) / 2)
-            path.addQuadCurve(to: mid, control: current)
-        }
-        
-        path.closeSubpath()
-        return path
-    }
-}
+
 
 struct HomeView: View {
     @Environment(AuthViewModel.self) private var authViewModel
@@ -47,10 +11,9 @@ struct HomeView: View {
     @State private var isLoading = true
     @State private var categories: [HomeCategory] = []
     @State private var nearbyStores: [NearbyStoreItem] = []
-    @State private var flashOffers: [ProductItem] = []
-    @State private var rewardPointsProducts: [ProductItem] = []
-    @State private var forYouProducts: [ProductItem] = []
     @State private var selectedCategoryId: UUID? 
+    @State private var isFilterLoading = false
+    @State private var storeFetchTask: Task<Void, Never>?
     
     let onExploreTap: () -> Void
 
@@ -61,6 +24,7 @@ struct HomeView: View {
         return nearbyStores
     }
 
+
     var body: some View {
         ZStack {
             Color.brandBackground.ignoresSafeArea()
@@ -70,35 +34,29 @@ struct HomeView: View {
                     .transition(.opacity.animation(.easeOut(duration: 0.4)))
             } else {
                 ScrollView(.vertical, showsIndicators: false) {
-                    VStack(spacing: 20) {
+                    VStack(spacing: 24) {
                         addressHeader
                             .padding(.horizontal, 16)
                             .padding(.top, 12)
                         
                         HomeFilterChipsView()
-                            .entranceAnimation(delay: 0.05, isAppearing: isAppearing)
+                            .zIndex(0)
                         
                         if !categories.isEmpty {
                             categoryScrollSection
-                                .entranceAnimation(delay: 0.1, isAppearing: isAppearing)
+                                .zIndex(1)
                         }
                         
-                        Group {
-                            flashOffersSection
-                            rewardPointsSection
-                            forYouSection
-                            nearbyVerticalSection
-                        }
-                        .entranceAnimation(delay: 0.15, isAppearing: isAppearing)
+                        nearbyVerticalSection
+                            .zIndex(0)
                     }
-                    .padding(.bottom, 28)
+                    .padding(.bottom, 32)
                 }
                 .refreshable {
                     let generator = UIImpactFeedbackGenerator(style: .medium)
                     generator.impactOccurred()
                     await fetchCategories()
                     await fetchStores()
-                    await fetchProducts()
                     try? await Task.sleep(nanoseconds: 500_000_000)
                     let successGenerator = UINotificationFeedbackGenerator()
                     successGenerator.notificationOccurred(.success)
@@ -106,28 +64,30 @@ struct HomeView: View {
                 .scrollBounceBehavior(.basedOnSize)
                 .background(Color.brandBackground)
                 .transition(.opacity.animation(.easeIn(duration: 0.4)))
+                .animation(.spring(response: 0.4, dampingFraction: 0.8), value: selectedCategoryId)
+                .animation(.easeInOut(duration: 0.3), value: isFilterLoading)
             }
         }
         .navigationBarTitleDisplayMode(.large)
         .onAppear {
-            withAnimation(.spring(response: 0.45, dampingFraction: 0.8)) {
-                isAppearing = true
-            }
-            animatePoints(to: authViewModel.userProfile?.points ?? 0)
-            
-            Task {
-                if let userId = authViewModel.currentUser?.id {
-                    await FavoritesManager.shared.fetchFavorites(userId: userId)
-                }
-                await fetchCategories()
-                await fetchStores()
-                await fetchProducts()
-                
-                withAnimation {
-                    isLoading = false
+            if isLoading {
+                Task {
+                    if let userId = authViewModel.currentUser?.id {
+                        await FavoritesManager.shared.fetchFavorites(userId: userId)
+                    }
+                    if categories.isEmpty {
+                        await fetchCategories()
+                    }
+                    await fetchStores()
+                    
+                    withAnimation {
+                        isLoading = false
+                        isAppearing = true
+                    }
                 }
             }
         }
+
         .onChange(of: authViewModel.userProfile) { _, newProfile in
             if let points = newProfile?.points {
                 animatePoints(to: points)
@@ -180,6 +140,10 @@ struct HomeView: View {
     }
     
     private func fetchStores() async {
+        await MainActor.run {
+            isFilterLoading = true
+        }
+
         do {
             let fetchedStores: [NearbyStoreItem] = try await SupabaseManager.shared.client
                 .from("stores")
@@ -187,35 +151,14 @@ struct HomeView: View {
                 .order("created_at", ascending: false)
                 .execute()
                 .value
-            
+
             await MainActor.run {
-                withAnimation(.spring()) {
-                    self.nearbyStores = fetchedStores
-                }
+                self.nearbyStores = fetchedStores
+                self.isFilterLoading = false
             }
         } catch {
             print("Error fetching stores: \(error)")
-        }
-    }
-    
-    private func fetchProducts() async {
-        do {
-            let allProducts: [ProductItem] = try await SupabaseManager.shared.client
-                .from("products")
-                .select()
-                .order("created_at", ascending: false)
-                .execute()
-                .value
-            
-            await MainActor.run {
-                withAnimation(.spring()) {
-                    self.flashOffers = allProducts.filter { $0.isFlashOffer }
-                    self.rewardPointsProducts = allProducts.filter { $0.rewardPoints > 0 }
-                    self.forYouProducts = allProducts.filter { $0.isForYou }
-                }
-            }
-        } catch {
-            print("Error fetching products: \(error)")
+            await MainActor.run { self.isFilterLoading = false }
         }
     }
 
@@ -225,56 +168,28 @@ struct HomeView: View {
         }
     }
 
-    // MARK: - Sections
-
     private var categoryScrollSection: some View {
         ScrollView(.horizontal, showsIndicators: false) {
-            LazyHStack(spacing: 24) {
-                ForEach(categories) { category in
+            HStack(spacing: 24) {
+                ForEach(categories, id: \.id) { category in
                     let isSelected = selectedCategoryId == category.id
-                    
-                    Button {
-                        withAnimation(.spring(response: 0.4, dampingFraction: 0.7)) {
-                            if selectedCategoryId == category.id {
-                                selectedCategoryId = nil 
-                            } else {
-                                selectedCategoryId = category.id
+                    CategoryBlobView(category: category, isSelected: isSelected)
+                        .onTapGesture {
+                            withAnimation(.spring(response: 0.35, dampingFraction: 0.7)) {
+                                if selectedCategoryId == category.id {
+                                    selectedCategoryId = nil
+                                } else {
+                                    selectedCategoryId = category.id
+                                }
                             }
+                            UISelectionFeedbackGenerator().selectionChanged()
                         }
-                        UISelectionFeedbackGenerator().selectionChanged()
-                    } label: {
-                        VStack(spacing: 6) { 
-                            ZStack {
-                                // Gota proporcional al nuevo tamaño (78x78)
-                                BlobShape(seed: category.name.hashValue)
-                                    .fill(isSelected ? category.color.opacity(0.18) : Color.clear)
-                                    .frame(width: 78, height: 78)
-                                    .rotationEffect(.degrees(Double(abs(category.name.hashValue) % 360)))
-                                
-                                Text(category.emoji)
-                                    .font(.system(size: 44)) // Más grandes como pediste
-                                    .shadow(color: .black.opacity(isSelected ? 0 : 0.08), radius: 2, x: 0, y: 1)
-                            }
-                            .frame(height: 84) // Altura para que el diseño respire
-
-                            Text(category.name)
-                                .font(.caption2.weight(.medium))
-                                .foregroundStyle(isSelected ? getLegibleColor(for: category.color) : .primary)
-                                .lineLimit(1)
-                        }
-                    }
-                    .buttonStyle(.plain)
-                    .scrollTransition(.interactive, axis: .horizontal) { content, phase in
-                        content
-                            .scaleEffect(phase.isIdentity ? 1.0 : 0.9)
-                            .opacity(phase.isIdentity ? 1.0 : 0.8)
-                    }
                 }
             }
-            .scrollTargetLayout()
+            .padding(.horizontal, 16)
+            .padding(.vertical, 8) // Un poco de aire vertical para hit-testing
         }
-        .contentMargins(.horizontal, 16, for: .scrollContent)
-        .scrollTargetBehavior(.viewAligned)
+        .background(Color.brandBackground) // Asegura que el área del scroll sea sólida para toques
     }
     
     private func getLegibleColor(for color: Color) -> Color {
@@ -283,43 +198,8 @@ struct HomeView: View {
         }
         return color
     }
+    
 
-    private var flashOffersSection: some View {
-        VStack(alignment: .leading, spacing: 20) {
-            HStack {
-                Text("Ofertas Flash").font(.title2.weight(.bold))
-                Spacer()
-                Text("Terminan pronto").font(.caption.weight(.bold)).foregroundStyle(.red).padding(.horizontal, 8).padding(.vertical, 4).background(.red.opacity(0.1)).clipShape(Capsule())
-            }.padding(.horizontal, 16)
-            ScrollView(.horizontal, showsIndicators: false) {
-                LazyHStack(spacing: 16) {
-                    ForEach(flashOffers) { product in NearbyCardView(product: product) }
-                }.scrollTargetLayout()
-            }.contentMargins(.horizontal, 16, for: .scrollContent).scrollTargetBehavior(.viewAligned)
-        }
-    }
-    
-    private var rewardPointsSection: some View {
-        VStack(alignment: .leading, spacing: 20) {
-            Text("Recompensas con puntos").font(.title2.weight(.bold)).padding(.horizontal, 16)
-            ScrollView(.horizontal, showsIndicators: false) {
-                LazyHStack(spacing: 16) {
-                    ForEach(rewardPointsProducts) { product in NearbyCardView(product: product) }
-                }.scrollTargetLayout()
-            }.contentMargins(.horizontal, 16, for: .scrollContent).scrollTargetBehavior(.viewAligned)
-        }
-    }
-    
-    private var forYouSection: some View {
-        VStack(alignment: .leading, spacing: 20) {
-            Text("Productos para ti").font(.title2.weight(.bold)).padding(.horizontal, 16)
-            ScrollView(.horizontal, showsIndicators: false) {
-                LazyHStack(spacing: 16) {
-                    ForEach(forYouProducts) { product in NearbyCardView(product: product) }
-                }.scrollTargetLayout()
-            }.contentMargins(.horizontal, 16, for: .scrollContent).scrollTargetBehavior(.viewAligned)
-        }
-    }
     
     private var nearbyVerticalSection: some View {
         VStack(alignment: .leading, spacing: 20) {
@@ -327,7 +207,14 @@ struct HomeView: View {
                 .font(.title2.weight(.bold))
                 .padding(.horizontal, 16)
             
-            if filteredStores.isEmpty {
+            if isFilterLoading {
+                VStack(spacing: 28) {
+                    ForEach(0..<3, id: \.self) { _ in
+                        StoreSkeletonCard()
+                            .padding(.horizontal, 16)
+                    }
+                }
+            } else if filteredStores.isEmpty {
                 VStack(spacing: 12) {
                     Image(systemName: "storefront")
                         .font(.largeTitle)
@@ -339,26 +226,17 @@ struct HomeView: View {
                 .frame(maxWidth: .infinity)
                 .padding(.vertical, 40)
             } else {
-                LazyVStack(spacing: 24) {
+                VStack(spacing: 24) {
                     ForEach(filteredStores) { store in 
                         NearbyStoreCardVerticalView(store: store)
                             .padding(.horizontal, 16) 
                     }
                 }
             }
-        }
-    }
-
-}
-
-
-// MARK: - Premium Components
-
-extension View {
-    func entranceAnimation(delay: Double, isAppearing: Bool) -> some View {
-        self
-            .offset(y: isAppearing ? 0 : 10)
-            .opacity(isAppearing ? 1 : 0)
-            .animation(.spring(response: 0.45, dampingFraction: 0.8).delay(delay), value: isAppearing)
+        .animation(.easeInOut(duration: 0.3), value: isFilterLoading)
+        .transition(.opacity)
     }
 }
+
+
+

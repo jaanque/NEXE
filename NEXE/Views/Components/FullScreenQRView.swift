@@ -23,38 +23,50 @@ struct FullScreenQRView: View {
             }
             
             VStack(spacing: 0) {
-                // CABECERA CONTROLES
-                HStack {
-                    Button {
-                        withAnimation(.spring()) {
-                            showControls.toggle()
+                // CABECERA CONTROLES (Solo visibles si no estamos personalizando)
+                if !showControls {
+                    HStack(spacing: 16) {
+                        // BOTÓN PERSONALIZAR
+                        Button {
+                            withAnimation(.spring(response: 0.4, dampingFraction: 0.7)) {
+                                showControls.toggle()
+                            }
+                            UIImpactFeedbackGenerator(style: .light).impactOccurred()
+                        } label: {
+                            HStack(spacing: 8) {
+                                Image(systemName: "paintpalette.fill")
+                                Text("Personalizar")
+                                    .font(.system(size: 14, weight: .bold))
+                            }
+                            .padding(.vertical, 10)
+                            .padding(.horizontal, 20)
+                            .background(Color.white)
+                            .foregroundStyle(.primary)
+                            .clipShape(Capsule())
+                            .shadow(color: .black.opacity(0.12), radius: 8, x: 0, y: 4)
                         }
-                    } label: {
-                        HStack(spacing: 8) {
-                            Image(systemName: "paintpalette.fill")
-                            Text("Personalizar")
-                                .font(.subheadline.weight(.bold))
+                        .transition(.move(edge: .top).combined(with: .opacity))
+                        
+                        Spacer()
+                        
+                        // BOTÓN CERRAR VISTA
+                        Button {
+                            saveSettings()
+                            dismiss()
+                        } label: {
+                            Image(systemName: "xmark")
+                                .font(.system(size: 18, weight: .bold))
+                                .foregroundStyle(.primary)
+                                .frame(width: 44, height: 44)
+                                .background(Color.white)
+                                .clipShape(Circle())
+                                .shadow(color: .black.opacity(0.12), radius: 8, x: 0, y: 4)
                         }
-                        .padding(.vertical, 8)
-                        .padding(.horizontal, 16)
-                        .background(showControls ? Color.brandGreen.opacity(0.1) : Color.clear)
-                        .foregroundStyle(showControls ? Color.brandGreen : .secondary)
-                        .clipShape(Capsule())
+                        .transition(.move(edge: .top).combined(with: .opacity))
                     }
-                    
-                    Spacer()
-                    
-                    Button {
-                        saveSettings()
-                        dismiss()
-                    } label: {
-                        Image(systemName: "xmark.circle.fill")
-                            .font(.system(size: 32))
-                            .foregroundStyle(.secondary.opacity(0.5))
-                    }
+                    .padding(.horizontal, 24)
+                    .padding(.top, 20)
                 }
-                .padding(.horizontal, 24)
-                .padding(.top, 20)
                 
                 Spacer()
                 
@@ -97,22 +109,40 @@ struct FullScreenQRView: View {
                         colorSelector
                         emojiSelector
                         
-                        Button {
-                            saveSettings()
-                            withAnimation(.spring()) {
-                                showControls = false
+                        HStack(spacing: 12) {
+                            // BOTÓN CERRAR MENÚ
+                            Button {
+                                withAnimation(.spring()) {
+                                    showControls = false
+                                }
+                            } label: {
+                                Image(systemName: "xmark")
+                                    .font(.system(size: 18, weight: .bold))
+                                    .foregroundStyle(.primary)
+                                    .frame(width: 54, height: 54)
+                                    .background(Color.white)
+                                    .clipShape(RoundedRectangle(cornerRadius: 16))
+                                    .shadow(color: .black.opacity(0.05), radius: 5)
                             }
-                            UINotificationFeedbackGenerator().notificationOccurred(.success)
-                        } label: {
-                            Text("Guardar Cambios")
-                                .font(.headline)
-                                .foregroundStyle(.white)
-                                .frame(maxWidth: .infinity)
-                                .frame(height: 54)
-                                .background(Color.brandGreen)
-                                .clipShape(RoundedRectangle(cornerRadius: 16))
-                                .padding(.horizontal, 24)
+                            
+                            // BOTÓN GUARDAR CAMBIOS
+                            Button {
+                                saveSettings()
+                                withAnimation(.spring()) {
+                                    showControls = false
+                                }
+                                UINotificationFeedbackGenerator().notificationOccurred(.success)
+                            } label: {
+                                Text("Guardar Cambios")
+                                    .font(.headline)
+                                    .foregroundStyle(.white)
+                                    .frame(maxWidth: .infinity)
+                                    .frame(height: 54)
+                                    .background(Color.brandGreen)
+                                    .clipShape(RoundedRectangle(cornerRadius: 16))
+                            }
                         }
+                        .padding(.horizontal, 24)
                     }
                     .padding(.vertical, 24)
                     .background(.ultraThinMaterial)
