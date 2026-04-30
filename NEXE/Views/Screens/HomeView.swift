@@ -1,8 +1,6 @@
 import SwiftUI
 import Supabase
 
-
-
 struct HomeView: View {
     @Environment(AuthViewModel.self) private var authViewModel
     @State private var showAuthSheet = false
@@ -14,16 +12,48 @@ struct HomeView: View {
     @State private var selectedCategoryId: UUID? 
     @State private var isFilterLoading = false
     @State private var storeFetchTask: Task<Void, Never>?
-    
+    private let locationManager = LocationManager.shared    
     let onExploreTap: () -> Void
 
-    private var filteredStores: [NearbyStoreItem] {
-        if let selectedId = selectedCategoryId {
-            return nearbyStores.filter { $0.categoryId == selectedId }
-        }
-        return nearbyStores
+    enum SortOrder {
+        case closest
+        case farthest
     }
+    
+    @State private var sortOrder: SortOrder = .closest
+    @State private var showOnlyOpen: Bool = false
+    @State private var showOnlyPoints: Bool = false
+    @State private var showOnlyOffers: Bool = false
 
+    private var filteredStores: [NearbyStoreItem] {
+        var stores = nearbyStores
+        if let selectedId = selectedCategoryId {
+            stores = stores.filter { $0.categoryId == selectedId }
+        }
+        
+        // Filtro "Abierto Ahora"
+        if showOnlyOpen {
+            stores = stores.filter { $0.isOpen }
+        }
+        
+        // Filtro "Acepta Puntos"
+        if showOnlyPoints {
+            stores = stores.filter { $0.givesPoints }
+        }
+        
+        // Filtro "Ofertas"
+        if showOnlyOffers {
+            stores = stores.filter { $0.hasOffers }
+        }
+        
+        // Ordenar según selección
+        switch sortOrder {
+        case .closest:
+            return stores.sorted { $0.distanceInMeters < $1.distanceInMeters }
+        case .farthest:
+            return stores.sorted { $0.distanceInMeters > $1.distanceInMeters }
+        }
+    }
 
     var body: some View {
         ZStack {
@@ -34,21 +64,25 @@ struct HomeView: View {
                     .transition(.opacity.animation(.easeOut(duration: 0.4)))
             } else {
                 ScrollView(.vertical, showsIndicators: false) {
-                    VStack(spacing: 24) {
-                        addressHeader
+                    VStack(spacing: 16) {
+                        welcomeHeader
                             .padding(.horizontal, 16)
                             .padding(.top, 12)
                         
-                        HomeFilterChipsView()
-                            .zIndex(0)
-                        
                         if !categories.isEmpty {
-                            categoryScrollSection
-                                .zIndex(1)
+                            VStack(spacing: 4) {
+                                categoryScrollSection
+                                HomeFilterChipsView(sortOrder: $sortOrder, showOnlyOpen: $showOnlyOpen, showOnlyPoints: $showOnlyPoints, showOnlyOffers: $showOnlyOffers)
+                            }
+                            .padding(.top, 8)
+                            .padding(.bottom, 0)
+                            .background(Color.brandBackground)
+                            .zIndex(1)
                         }
                         
                         nearbyVerticalSection
                             .zIndex(0)
+                            .padding(.top, 0)
                     }
                     .padding(.bottom, 32)
                 }
@@ -66,12 +100,16 @@ struct HomeView: View {
                 .transition(.opacity.animation(.easeIn(duration: 0.4)))
                 .animation(.spring(response: 0.4, dampingFraction: 0.8), value: selectedCategoryId)
                 .animation(.easeInOut(duration: 0.3), value: isFilterLoading)
+                .onChange(of: locationManager.userLocation) { _, _ in }
             }
         }
         .navigationBarTitleDisplayMode(.large)
         .onAppear {
             if isLoading {
                 Task {
+                    locationManager.requestPermission()
+                    locationManager.startUpdatingLocation()
+                    
                     if let userId = authViewModel.currentUser?.id {
                         await FavoritesManager.shared.fetchFavorites(userId: userId)
                     }
@@ -87,7 +125,6 @@ struct HomeView: View {
                 }
             }
         }
-
         .onChange(of: authViewModel.userProfile) { _, newProfile in
             if let points = newProfile?.points {
                 animatePoints(to: points)
@@ -100,26 +137,51 @@ struct HomeView: View {
         }
     }
 
-    private var addressHeader: some View {
-        HStack(spacing: 12) {
-            Button(action: onExploreTap) {
-                HStack(spacing: 8) {
-                    Image(systemName: "magnifyingglass").foregroundStyle(.primary)
-                    Text("Buscar en NEXE...").font(.subheadline).foregroundStyle(.secondary)
-                    Spacer()
-                }.padding(.horizontal, 14).frame(height: 44).background(Color.brandBackground).clipShape(Capsule()).overlay(Capsule().stroke(Color.secondary.opacity(0.3), lineWidth: 1))
-            }.buttonStyle(.plain)
-            Button { } label: {
-                HStack(spacing: 4) {
-                    Image(systemName: "star.circle.fill").foregroundStyle(.yellow)
-                    Text("\(animatedPoints)").font(.subheadline.weight(.semibold).monospacedDigit()).foregroundStyle(.primary).contentTransition(.numericText())
-                }.padding(.horizontal, 10).frame(height: 44).background(Color.brandBackground).clipShape(Capsule()).overlay(Capsule().stroke(Color.secondary.opacity(0.3), lineWidth: 1))
-            }.buttonStyle(.plain)
+    private var welcomeHeader: some View {
+        HStack(alignment: .center) {
+            VStack(alignment: .leading, spacing: 4) {
+                Text("Hola, \(authViewModel.currentUser?.email?.components(separatedBy: "@").first?.capitalized ?? "Usuario")")
+                    .font(.title2.weight(.bold))
+                    .foregroundStyle(.primary)
+                
+                Text("¿Qué te apetece hoy?")
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
+            }
+            
+            Spacer()
+            
+            HStack(spacing: 12) {
+                Button(action: onExploreTap) {
+                    Image(systemName: "magnifyingglass")
+                        .font(.system(size: 18, weight: .bold))
+                        .foregroundStyle(.primary)
+                        .frame(width: 44, height: 44)
+                        .background(Color.brandBackground)
+                        .clipShape(Circle())
+                        .overlay(Circle().stroke(Color.secondary.opacity(0.3), lineWidth: 1))
+                }
+                .buttonStyle(.plain)
+                
+                Button { } label: {
+                    HStack(spacing: 6) {
+                        Image(systemName: "star.circle.fill")
+                            .foregroundStyle(.yellow)
+                        Text("\(animatedPoints)")
+                            .font(.system(size: 16, weight: .bold, design: .rounded).monospacedDigit())
+                            .foregroundStyle(.primary)
+                    }
+                    .padding(.horizontal, 12)
+                    .frame(height: 44)
+                    .background(Color.brandBackground)
+                    .clipShape(Capsule())
+                    .overlay(Capsule().stroke(Color.secondary.opacity(0.3), lineWidth: 1))
+                }
+                .buttonStyle(.plain)
+            }
         }
     }
 
-    // MARK: - Supabase Logic
-    
     private func fetchCategories() async {
         do {
             let fetchedCategories: [HomeCategory] = try await SupabaseManager.shared.client
@@ -145,19 +207,51 @@ struct HomeView: View {
         }
 
         do {
+            // 1. Cargar y mostrar locales inmediatamente
             let fetchedStores: [NearbyStoreItem] = try await SupabaseManager.shared.client
                 .from("stores")
                 .select()
                 .order("created_at", ascending: false)
                 .execute()
                 .value
-
+            
             await MainActor.run {
                 self.nearbyStores = fetchedStores
-                self.isFilterLoading = false
+                // Si el filtro de ofertas no está activo, ya podemos quitar el loading
+                if !showOnlyOffers {
+                    self.isFilterLoading = false
+                }
+            }
+
+            // 2. Cargar datos de productos para verificar ofertas de forma asíncrona
+            do {
+                let productsWithPrices: [ProductItem] = try await SupabaseManager.shared.client
+                    .from("products")
+                    .select("store_id, price, original_price")
+                    .execute()
+                    .value
+                
+                let offerStoreIds = Set(productsWithPrices.filter { product in
+                    if let original = product.originalPrice {
+                        return product.price < original
+                    }
+                    return false
+                }.compactMap { $0.storeId })
+
+                await MainActor.run {
+                    self.nearbyStores = fetchedStores.map { store in
+                        var updated = store
+                        updated.hasOffers = offerStoreIds.contains(store.id)
+                        return updated
+                    }
+                    self.isFilterLoading = false
+                }
+            } catch {
+                print("Aviso: No se pudieron cargar las ofertas: \(error)")
+                await MainActor.run { self.isFilterLoading = false }
             }
         } catch {
-            print("Error fetching stores: \(error)")
+            print("Error crítico cargando locales: \(error)")
             await MainActor.run { self.isFilterLoading = false }
         }
     }
@@ -182,37 +276,26 @@ struct HomeView: View {
                                     selectedCategoryId = category.id
                                 }
                             }
-                            
-                            // Mostrar skeleton brevemente para carga "junta"
                             isFilterLoading = true
                             Task {
-                                try? await Task.sleep(nanoseconds: 400_000_000) // 0.4s
+                                try? await Task.sleep(nanoseconds: 400_000_000)
                                 await MainActor.run {
                                     withAnimation(.easeInOut(duration: 0.3)) {
                                         isFilterLoading = false
                                     }
                                 }
                             }
-                            
                             UISelectionFeedbackGenerator().selectionChanged()
                         }
                 }
             }
             .padding(.horizontal, 16)
-            .padding(.vertical, 8) // Un poco de aire vertical para hit-testing
+            .padding(.top, 8)
+            .padding(.bottom, 8) // Mantengo 8pt de padding inferior bajo el texto
         }
-        .background(Color.brandBackground) // Asegura que el área del scroll sea sólida para toques
+        .background(Color.brandBackground)
     }
-    
-    private func getLegibleColor(for color: Color) -> Color {
-        if color == .yellow || color.description.contains("FFD700") {
-            return Color(red: 0.7, green: 0.5, blue: 0.0)
-        }
-        return color
-    }
-    
 
-    
     private var nearbyVerticalSection: some View {
         VStack(alignment: .leading, spacing: 20) {
             Text(selectedCategoryId == nil ? "Cerca de ti" : "Resultados")
@@ -250,6 +333,3 @@ struct HomeView: View {
         .transition(.opacity)
     }
 }
-
-
-

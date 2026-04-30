@@ -190,13 +190,7 @@ struct ExploreView: View {
                                     searchOverlayContent
                                 }
                             }
-                            .refreshable {
-                                await fetchCategories()
-                                await fetchNewStores()
-                                await fetchProducts()
-                                await fetchCuratedStores()
-                                try? await Task.sleep(nanoseconds: 1_000_000_000)
-                            }
+
                             .transition(.opacity.animation(.easeIn(duration: 0.4)))
                         }
                     }
@@ -397,7 +391,7 @@ struct CuratedCardView: View {
             } placeholder: {
                 Color.gray.opacity(0.1)
             }
-            .frame(width: 200, height: 260)
+            .frame(width: 220, height: 300)
             .overlay(
                 LinearGradient(colors: [.black.opacity(0.6), .clear, .clear], startPoint: .bottom, endPoint: .top)
             )

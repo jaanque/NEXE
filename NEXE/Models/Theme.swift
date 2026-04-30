@@ -2,11 +2,12 @@ import SwiftUI
 
 // MARK: - App Theme Colors
 extension Color {
-    /// Verde corporativo principal: #1D4232
-    static let brandGreen = Color(red: 0.114, green: 0.259, blue: 0.196)
+    /// Color corporativo principal (Granate): #8C1C1C
+    static let brandGranate = Color(red: 0.549, green: 0.110, blue: 0.110)
+    static let brandGreen = brandGranate
 
-    /// Fondo blanco roto de la app: #F7F6F2
-    static let brandBackground = Color(red: 0.969, green: 0.965, blue: 0.949)
+    /// Fondo blanco puro de la app
+    static let brandBackground = Color.white
     
     // MARK: - Hex Support
     

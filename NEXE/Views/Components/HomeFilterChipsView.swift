@@ -1,99 +1,192 @@
 import SwiftUI
 
+enum FilterID: String, CaseIterable {
+    case sort, openNow, points, offers, top
+}
+
 struct HomeFilterChipsView: View {
+    @Binding var sortOrder: HomeView.SortOrder
+    @Binding var showOnlyOpen: Bool
+    @Binding var showOnlyPoints: Bool
+    @Binding var showOnlyOffers: Bool
+    
+    // Referencia al orden original para restaurar posiciones
+    private let initialOrder: [FilterID] = FilterID.allCases
+    
+    // El orden de los filtros se gestiona dinámicamente
+    @State private var filterOrder: [FilterID] = FilterID.allCases
     
     var body: some View {
         ScrollView(.horizontal, showsIndicators: false) {
-            LazyHStack(spacing: 8) {
-                // Filter icon chip
-                Button {} label: {
-                    Image(systemName: "slider.horizontal.3")
-                        .foregroundStyle(.primary)
-                        .padding(.horizontal, 12)
-                        .frame(height: 36)
-                        .background(
-                            RoundedRectangle(cornerRadius: 18)
-                                .stroke(Color.secondary.opacity(0.3), lineWidth: 1)
-                        )
+            HStack(spacing: 8) {
+                ForEach(filterOrder, id: \.self) { filter in
+                    viewForFilter(filter)
                 }
-                
-                // Sort chip
-                Button {} label: {
-                    HStack(spacing: 4) {
-                        Image(systemName: "arrow.up.arrow.down")
-                        Text("Ordenar")
+            }
+            .padding(.horizontal, 16)
+        }
+        .animation(.spring(response: 0.4, dampingFraction: 0.8), value: filterOrder)
+    }
+    
+    @ViewBuilder
+    private func viewForFilter(_ filter: FilterID) -> some View {
+        switch filter {
+        case .sort:
+            sortChip
+        case .openNow:
+            openNowChip
+        case .points:
+            pointsChip
+        case .offers:
+            offersChip
+        case .top:
+            topChip
+        }
+    }
+    
+    private var sortChip: some View {
+        Menu {
+            Button {
+                withAnimation { 
+                    sortOrder = .closest
+                    updatePosition(.sort, isActive: false)
+                }
+            } label: {
+                Label("Más cerca", systemImage: sortOrder == .closest ? "checkmark" : "mappin.and.ellipse")
+            }
+            
+            Button {
+                withAnimation { 
+                    sortOrder = .farthest
+                    updatePosition(.sort, isActive: true)
+                }
+            } label: {
+                Label("Más lejos", systemImage: sortOrder == .farthest ? "checkmark" : "location.slash")
+            }
+        } label: {
+            HStack(spacing: 4) {
+                Image(systemName: "arrow.up.arrow.down")
+                Text("Ordenar")
+                if sortOrder != .closest {
+                    Circle().fill(Color.brandGranate).frame(width: 6, height: 6)
+                }
+            }
+            .font(.system(size: 13, weight: .bold))
+            .foregroundStyle(.primary)
+            .padding(.horizontal, 16)
+            .frame(height: 38)
+            .background(Color.gray.opacity(0.1))
+            .clipShape(Capsule())
+            .overlay(
+                Capsule()
+                    .stroke(sortOrder != .closest ? Color.brandGranate : Color.clear, lineWidth: 1.5)
+            )
+        }
+    }
+    
+    private var openNowChip: some View {
+        filterChip(isSelected: showOnlyOpen) {
+            HStack(spacing: 4) {
+                if showOnlyOpen { Image(systemName: "checkmark").font(.system(size: 10, weight: .black)) }
+                Text("Abierto Ahora")
+            }
+        } action: {
+            withAnimation(.spring()) {
+                showOnlyOpen.toggle()
+                updatePosition(.openNow, isActive: showOnlyOpen)
+            }
+        }
+    }
+    
+    private var pointsChip: some View {
+        filterChip(isSelected: showOnlyPoints) {
+            HStack(spacing: 4) {
+                if showOnlyPoints { Image(systemName: "checkmark").font(.system(size: 10, weight: .black)) }
+                Image(systemName: "star.circle.fill")
+                    .foregroundStyle(showOnlyPoints ? .white : .yellow)
+                Text("Acepta Puntos")
+            }
+        } action: {
+            withAnimation(.spring()) {
+                showOnlyPoints.toggle()
+                updatePosition(.points, isActive: showOnlyPoints)
+            }
+        }
+    }
+    
+    private var offersChip: some View {
+        filterChip(isSelected: showOnlyOffers) {
+            HStack(spacing: 4) {
+                if showOnlyOffers { Image(systemName: "checkmark").font(.system(size: 10, weight: .black)) }
+                Image(systemName: "tag.fill")
+                    .foregroundStyle(showOnlyOffers ? .white : Color.brandGranate)
+                Text("Ofertas")
+            }
+        } action: {
+            withAnimation(.spring()) {
+                showOnlyOffers.toggle()
+                updatePosition(.offers, isActive: showOnlyOffers)
+            }
+        }
+    }
+    
+    private var topChip: some View {
+        filterChip {
+            HStack(spacing: 4) {
+                Image(systemName: "star.fill")
+                    .foregroundStyle(.orange)
+                Text("Top")
+            }
+        }
+    }
+    
+    private func updatePosition(_ filter: FilterID, isActive: Bool) {
+        withAnimation(.spring(response: 0.4, dampingFraction: 0.8)) {
+            if isActive {
+                // Mover al principio si se activa
+                if let index = filterOrder.firstIndex(of: filter) {
+                    filterOrder.remove(at: index)
+                    filterOrder.insert(filter, at: 0)
+                }
+            } else {
+                // Restaurar posición original si se desactiva
+                filterOrder.sort { a, b in
+                    let aActive = isFilterActive(a)
+                    let bActive = isFilterActive(b)
+                    
+                    if aActive != bActive {
+                        return aActive
                     }
-                    .font(.subheadline.weight(.medium))
-                    .foregroundStyle(.primary)
-                    .padding(.horizontal, 16)
-                    .frame(height: 36)
-                    .background(
-                        RoundedRectangle(cornerRadius: 18)
-                            .stroke(Color.secondary.opacity(0.3), lineWidth: 1)
-                    )
-                }
-                
-                // Open Now chip
-                Button {} label: {
-                    Text("Abierto Ahora")
-                        .font(.subheadline.weight(.medium))
-                        .foregroundStyle(.primary)
-                        .padding(.horizontal, 16)
-                        .frame(height: 36)
-                        .background(
-                            RoundedRectangle(cornerRadius: 18)
-                                .stroke(Color.secondary.opacity(0.3), lineWidth: 1)
-                        )
-                }
-                
-                // Points chip
-                Button {} label: {
-                    HStack(spacing: 4) {
-                        Image(systemName: "star.circle.fill")
-                            .foregroundStyle(.yellow)
-                        Text("Acepta Puntos")
-                    }
-                    .font(.subheadline.weight(.medium))
-                    .foregroundStyle(.primary)
-                    .padding(.horizontal, 16)
-                    .frame(height: 36)
-                    .background(
-                        RoundedRectangle(cornerRadius: 18)
-                            .stroke(Color.secondary.opacity(0.3), lineWidth: 1)
-                    )
-                }
-                
-                // Offers chip
-                Button {} label: {
-                    HStack(spacing: 4) {
-                        Image(systemName: "tag.fill")
-                            .foregroundStyle(Color.brandGreen)
-                        Text("Ofertas Hoy")
-                    }
-                    .font(.subheadline.weight(.medium))
-                    .foregroundStyle(.primary)
-                    .padding(.horizontal, 16)
-                    .frame(height: 36)
-                    .background(
-                        RoundedRectangle(cornerRadius: 18)
-                            .stroke(Color.secondary.opacity(0.3), lineWidth: 1)
-                    )
-                }
-                
-                // Reserve chip
-                Button {} label: {
-                    Text("Reserva Inmediata")
-                        .font(.subheadline.weight(.medium))
-                        .foregroundStyle(.primary)
-                        .padding(.horizontal, 16)
-                        .frame(height: 36)
-                        .background(
-                            RoundedRectangle(cornerRadius: 18)
-                                .stroke(Color.secondary.opacity(0.3), lineWidth: 1)
-                        )
+                    
+                    let aInitial = initialOrder.firstIndex(of: a) ?? 0
+                    let bInitial = initialOrder.firstIndex(of: b) ?? 0
+                    return aInitial < bInitial
                 }
             }
         }
-        .contentMargins(.horizontal, 16, for: .scrollContent)
+    }
+    
+    private func isFilterActive(_ filter: FilterID) -> Bool {
+        switch filter {
+        case .sort: return sortOrder != .closest
+        case .openNow: return showOnlyOpen
+        case .points: return showOnlyPoints
+        case .offers: return showOnlyOffers
+        default: return false
+        }
+    }
+    
+    @ViewBuilder
+    private func filterChip(isSelected: Bool = false, @ViewBuilder content: () -> some View, action: @escaping () -> Void = {}) -> some View {
+        Button(action: action) {
+            content()
+                .font(.system(size: 13, weight: .bold))
+                .foregroundStyle(isSelected ? .white : .primary)
+                .padding(.horizontal, 16)
+                .frame(height: 38)
+                .background(isSelected ? Color.brandGranate : Color.gray.opacity(0.1))
+                .clipShape(Capsule())
+        }
+        .buttonStyle(.plain)
     }
 }

@@ -33,22 +33,18 @@ class FavoritesManager {
         
         do {
             if isFavorite {
-                // Eliminar usando match para manejar el product_id nulo de forma limpia
-                var params: [String: AnyJSON] = [
-                    "user_id": .string(userId.uuidString),
-                    "store_id": .string(storeId.uuidString)
-                ]
+                var query = client.from("favorites")
+                    .delete()
+                    .eq("user_id", value: userId)
+                    .eq("store_id", value: storeId)
                 
                 if let pid = productId {
-                    params["product_id"] = .string(pid.uuidString)
+                    query = query.eq("product_id", value: pid)
                 } else {
-                    params["product_id"] = .null
+                    query = query.is("product_id", value: nil)
                 }
                 
-                try await client.from("favorites")
-                    .delete()
-                    .match(params)
-                    .execute()
+                try await query.execute()
                 
                 await MainActor.run {
                     if let pid = productId {

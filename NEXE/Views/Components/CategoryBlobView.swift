@@ -5,7 +5,7 @@ struct CategoryBlobView: View {
     let isSelected: Bool
     
     var body: some View {
-        VStack(spacing: 12) {
+        VStack(spacing: 0) {
             ZStack {
                 BlobShape(seed: category.id.hashValue)
                     .fill(isSelected ? category.color.opacity(0.18) : Color.black.opacity(0.001))

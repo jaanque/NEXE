@@ -12,7 +12,27 @@ struct NearbyStoreCardVerticalView: View {
                 ZStack(alignment: .bottomLeading) {
                     DemoImage(urlString: store.imageURL ?? "", cornerRadius: 20)
                         .frame(height: 180)
+                        .grayscale(store.isOpen ? 0 : 1) // Gris si está cerrado
+                        .overlay(
+                            Group {
+                                if !store.isOpen {
+                                    Color.black.opacity(0.2) // Oscurecer un poco para legibilidad
+                                }
+                            }
+                        )
                         .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
+                    
+                    // Aviso de apertura (Esquina inferior derecha)
+                    if !store.isOpen, let nextTime = store.nextOpeningTime {
+                        Text("Abre a las \(nextTime)")
+                            .font(.system(size: 11, weight: .bold))
+                            .foregroundStyle(.white)
+                            .padding(.horizontal, 10)
+                            .padding(.vertical, 5)
+                            .background(Color.brandGranate)
+                            .clipShape(CustomCorner(corners: [.topLeft], radius: 12))
+                            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottomTrailing)
+                    }
                     
                     // Logo circular pequeño overlay (Esquina inferior izquierda)
                     ZStack {
