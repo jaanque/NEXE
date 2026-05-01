@@ -40,7 +40,7 @@ struct StoreProductCardView: View {
                     .lineLimit(2)
                     .multilineTextAlignment(.leading)
                 
-                Text(String(format: "%.2f€", product.price))
+                Text(product.price.formatted(.currency(code: "EUR")))
                     .font(.system(size: 15, weight: .bold))
                     .foregroundStyle(product.originalPrice != nil ? .red : .primary)
                 

@@ -1,10 +1,3 @@
-//
-//  ContentView.swift
-//  NEXE
-//
-//  Created by Jan Queralt Posino on 24/04/2026.
-//
-
 import SwiftUI
 
 struct ContentView: View {
@@ -13,9 +6,9 @@ struct ContentView: View {
 
     init() {
         let appearance = UITabBarAppearance()
-        appearance.backgroundColor = UIColor(Color.brandBackground)
-        appearance.backgroundEffect = nil // Eliminar blur para color sólido
-        
+        appearance.configureWithOpaqueBackground()
+        appearance.backgroundColor = UIColor.systemBackground
+        appearance.shadowColor = UIColor.separator
         UITabBar.appearance().standardAppearance = appearance
         UITabBar.appearance().scrollEdgeAppearance = appearance
     }
@@ -32,41 +25,41 @@ struct ContentView: View {
                     }
                 }
                 .tabItem {
-                    Image(systemName: "house")
+                    Label("Inicio", systemImage: "house")
                 }
                 .tag(AppTab.home)
+
+                NavigationStack {
+                    RewardsView()
+                }
+                .tabItem {
+                    Label("Recompensas", systemImage: "gift")
+                }
+                .tag(AppTab.rewards)
 
                 NavigationStack {
                     ExploreView(focusToken: exploreFocusToken)
                 }
                 .tabItem {
-                    Image(systemName: "magnifyingglass")
+                    Label("Explorar", systemImage: "magnifyingglass")
                 }
                 .tag(AppTab.explore)
 
                 NavigationStack {
-                    FavoritesView(selectedTab: $selectedTab)
+                    OrdersView(selectedTab: $selectedTab)
                 }
                 .tabItem {
-                    Image(systemName: "heart")
+                    Label("Pedidos", systemImage: "scroll")
+                }
+                .tag(AppTab.orders)
+
+                NavigationStack {
+                    ProfileView(selectedTab: $selectedTab)
+                }
+                .tabItem {
+                    Label("Perfil", systemImage: "person.crop.circle")
                 }
                 .badge(FavoritesManager.shared.newCount)
-                .tag(AppTab.favorites)
-
-                NavigationStack {
-                    ReservationsView(selectedTab: $selectedTab)
-                }
-                .tabItem {
-                    Image(systemName: "calendar")
-                }
-                .tag(AppTab.reservations)
-
-                NavigationStack {
-                    ProfileView()
-                }
-                .tabItem {
-                    Image(systemName: "person.crop.circle")
-                }
                 .tag(AppTab.profile)
             }
             .tint(Color.brandGreen)

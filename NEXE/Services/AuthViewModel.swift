@@ -50,36 +50,40 @@ class AuthViewModel {
     }
     
     @MainActor
-    func addPoints(_ amount: Int) async {
+    func updatePoints(to newPoints: Int) async throws {
         guard let user = currentUser else { return }
         
         isLoading = true
-        let currentPoints = userProfile?.points ?? 0
-        let newPoints = currentPoints + amount
+        defer { isLoading = false }
         
+        struct ProfileUpdate: Encodable {
+            let id: UUID
+            let points: Int
+        }
+        
+        let update = ProfileUpdate(id: user.id, points: newPoints)
+        
+        try await client
+            .from("profiles")
+            .upsert(update)
+            .execute()
+        
+        if userProfile == nil {
+            userProfile = Profile(id: user.id, points: newPoints)
+        } else {
+            userProfile?.points = newPoints
+        }
+    }
+    
+    @MainActor
+    func addPoints(_ amount: Int) async {
+        let currentPoints = userProfile?.points ?? 0
         do {
-            struct ProfileUpdate: Encodable {
-                let id: UUID
-                let points: Int
-            }
-            
-            let update = ProfileUpdate(id: user.id, points: newPoints)
-            
-            try await client
-                .from("profiles")
-                .upsert(update)
-                .execute()
-            
-            if userProfile == nil {
-                userProfile = Profile(id: user.id, points: newPoints)
-            } else {
-                userProfile?.points = newPoints
-            }
+            try await updatePoints(to: currentPoints + amount)
         } catch {
             errorMessage = "Error al actualizar puntos: \(error.localizedDescription)"
             print("DEBUG: \(error)")
         }
-        isLoading = false
     }
     
     @MainActor

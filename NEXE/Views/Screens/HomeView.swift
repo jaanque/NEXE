@@ -1,4 +1,5 @@
 import SwiftUI
+import Foundation
 import Supabase
 
 struct HomeView: View {
@@ -11,13 +12,15 @@ struct HomeView: View {
     @State private var nearbyStores: [NearbyStoreItem] = []
     @State private var selectedCategoryId: UUID? 
     @State private var isFilterLoading = false
-    @State private var storeFetchTask: Task<Void, Never>?
+
     private let locationManager = LocationManager.shared    
     let onExploreTap: () -> Void
 
     enum SortOrder {
         case closest
         case farthest
+        case bestRated
+        case worstRated
     }
     
     @State private var sortOrder: SortOrder = .closest
@@ -52,6 +55,20 @@ struct HomeView: View {
             return stores.sorted { $0.distanceInMeters < $1.distanceInMeters }
         case .farthest:
             return stores.sorted { $0.distanceInMeters > $1.distanceInMeters }
+        case .bestRated:
+            return stores.sorted { a, b in
+                if a.rating != b.rating {
+                    return a.rating > b.rating
+                }
+                return a.reviewsCount > b.reviewsCount
+            }
+        case .worstRated:
+            return stores.sorted { a, b in
+                if a.rating != b.rating {
+                    return a.rating < b.rating
+                }
+                return a.reviewsCount < b.reviewsCount
+            }
         }
     }
 
@@ -60,8 +77,9 @@ struct HomeView: View {
             Color.brandBackground.ignoresSafeArea()
             
             if isLoading {
+                // Carga inicial (primera vez)
                 HomeSkeletonView()
-                    .transition(.opacity.animation(.easeOut(duration: 0.4)))
+                    .transition(.opacity.animation(.easeOut(duration: 0.3)))
             } else {
                 ScrollView(.vertical, showsIndicators: false) {
                     VStack(spacing: 16) {
@@ -72,35 +90,26 @@ struct HomeView: View {
                         if !categories.isEmpty {
                             VStack(spacing: 4) {
                                 categoryScrollSection
-                                HomeFilterChipsView(sortOrder: $sortOrder, showOnlyOpen: $showOnlyOpen, showOnlyPoints: $showOnlyPoints, showOnlyOffers: $showOnlyOffers)
+                                HomeFilterChipsView(
+                                    sortOrder: $sortOrder,
+                                    showOnlyOpen: $showOnlyOpen,
+                                    showOnlyPoints: $showOnlyPoints,
+                                    showOnlyOffers: $showOnlyOffers
+                                )
                             }
                             .padding(.top, 8)
-                            .padding(.bottom, 0)
                             .background(Color.brandBackground)
                             .zIndex(1)
                         }
                         
                         nearbyVerticalSection
                             .zIndex(0)
-                            .padding(.top, 0)
                     }
                     .padding(.bottom, 32)
                 }
-                .refreshable {
-                    let generator = UIImpactFeedbackGenerator(style: .medium)
-                    generator.impactOccurred()
-                    await fetchCategories()
-                    await fetchStores()
-                    try? await Task.sleep(nanoseconds: 500_000_000)
-                    let successGenerator = UINotificationFeedbackGenerator()
-                    successGenerator.notificationOccurred(.success)
-                }
-                .scrollBounceBehavior(.basedOnSize)
                 .background(Color.brandBackground)
-                .transition(.opacity.animation(.easeIn(duration: 0.4)))
                 .animation(.spring(response: 0.4, dampingFraction: 0.8), value: selectedCategoryId)
                 .animation(.easeInOut(duration: 0.3), value: isFilterLoading)
-                .onChange(of: locationManager.userLocation) { _, _ in }
             }
         }
         .navigationBarTitleDisplayMode(.large)
@@ -109,30 +118,19 @@ struct HomeView: View {
                 Task {
                     locationManager.requestPermission()
                     locationManager.startUpdatingLocation()
-                    
                     if let userId = authViewModel.currentUser?.id {
                         await FavoritesManager.shared.fetchFavorites(userId: userId)
                     }
-                    if categories.isEmpty {
-                        await fetchCategories()
-                    }
+                    if categories.isEmpty { await fetchCategories() }
                     await fetchStores()
-                    
-                    withAnimation {
-                        isLoading = false
-                        isAppearing = true
-                    }
+                    withAnimation { isLoading = false; isAppearing = true }
                 }
             }
         }
         .onChange(of: authViewModel.userProfile) { _, newProfile in
-            if let points = newProfile?.points {
-                animatePoints(to: points)
-            }
+            if let points = newProfile?.points { animatePoints(to: points) }
             if let userId = authViewModel.currentUser?.id {
-                Task {
-                    await FavoritesManager.shared.fetchFavorites(userId: userId)
-                }
+                Task { await FavoritesManager.shared.fetchFavorites(userId: userId) }
             }
         }
     }
@@ -227,15 +225,13 @@ struct HomeView: View {
             do {
                 let productsWithPrices: [ProductItem] = try await SupabaseManager.shared.client
                     .from("products")
-                    .select("store_id, price, original_price")
+                    .select()
                     .execute()
                     .value
                 
                 let offerStoreIds = Set(productsWithPrices.filter { product in
-                    if let original = product.originalPrice {
-                        return product.price < original
-                    }
-                    return false
+                    let hasDiscount = (product.originalPrice ?? 0) > product.price
+                    return hasDiscount || product.isFlashOffer
                 }.compactMap { $0.storeId })
 
                 await MainActor.run {
@@ -275,6 +271,7 @@ struct HomeView: View {
                                 } else {
                                     selectedCategoryId = category.id
                                 }
+                                
                             }
                             isFilterLoading = true
                             Task {

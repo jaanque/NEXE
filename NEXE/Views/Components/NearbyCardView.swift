@@ -50,12 +50,12 @@ struct NearbyCardView: View {
                 
                 // 3. Precio con Descuento
                 HStack(alignment: .bottom, spacing: 6) {
-                    Text(String(format: "%.2f€", product.price))
-                        .font(.system(size: 18, weight: .bold))
-                        .foregroundStyle(product.originalPrice != nil ? .red : .black)
-                    
-                    if let original = product.originalPrice {
-                        Text(String(format: "%.2f€", original))
+                    Text(product.price.formatted(.currency(code: "EUR")))
+                        .font(.caption.weight(.bold))
+                        .foregroundStyle(.primary)
+
+                    if let original = product.originalPrice, original > product.price {
+                        Text(original.formatted(.currency(code: "EUR")))
                             .font(.system(size: 14))
                             .foregroundStyle(.secondary)
                             .strikethrough()

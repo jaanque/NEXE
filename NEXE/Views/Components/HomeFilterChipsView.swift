@@ -1,7 +1,7 @@
 import SwiftUI
 
 enum FilterID: String, CaseIterable {
-    case sort, openNow, points, offers, top
+    case sort, openNow, points, offers
 }
 
 struct HomeFilterChipsView: View {
@@ -39,8 +39,6 @@ struct HomeFilterChipsView: View {
             pointsChip
         case .offers:
             offersChip
-        case .top:
-            topChip
         }
     }
     
@@ -62,6 +60,26 @@ struct HomeFilterChipsView: View {
                 }
             } label: {
                 Label("Más lejos", systemImage: sortOrder == .farthest ? "checkmark" : "location.slash")
+            }
+
+            Divider()
+
+            Button {
+                withAnimation { 
+                    sortOrder = .bestRated
+                    updatePosition(.sort, isActive: true)
+                }
+            } label: {
+                Label("Mejor valorados", systemImage: sortOrder == .bestRated ? "checkmark" : "star.fill")
+            }
+
+            Button {
+                withAnimation { 
+                    sortOrder = .worstRated
+                    updatePosition(.sort, isActive: true)
+                }
+            } label: {
+                Label("Peor valorados", systemImage: sortOrder == .worstRated ? "checkmark" : "star.leadinghalf.filled")
             }
         } label: {
             HStack(spacing: 4) {
@@ -130,15 +148,6 @@ struct HomeFilterChipsView: View {
         }
     }
     
-    private var topChip: some View {
-        filterChip {
-            HStack(spacing: 4) {
-                Image(systemName: "star.fill")
-                    .foregroundStyle(.orange)
-                Text("Top")
-            }
-        }
-    }
     
     private func updatePosition(_ filter: FilterID, isActive: Bool) {
         withAnimation(.spring(response: 0.4, dampingFraction: 0.8)) {

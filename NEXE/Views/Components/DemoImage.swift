@@ -5,32 +5,31 @@ struct DemoImage: View {
     let cornerRadius: CGFloat
 
     var body: some View {
-        AsyncImage(url: URL(string: urlString)) { phase in
-            switch phase {
-            case .empty:
-                placeholder
-            case .success(let image):
-                image
-                    .resizable()
-                    .scaledToFill()
-            case .failure:
-                placeholder
-            @unknown default:
-                placeholder
+        ZStack {
+            Color(uiColor: .secondarySystemBackground)
+            
+            AsyncImage(url: URL(string: urlString)) { phase in
+                switch phase {
+                case .success(let image):
+                    image
+                        .resizable()
+                        .aspectRatio(contentMode: .fill)
+                case .failure, .empty:
+                    placeholder
+                @unknown default:
+                    placeholder
+                }
             }
         }
-        .background(Color(uiColor: .secondarySystemBackground))
         .clipShape(RoundedRectangle(cornerRadius: cornerRadius, style: .continuous))
+        .contentShape(Rectangle())
+        .clipped() // Esto asegura que respete el frame que le den desde fuera
     }
 
     private var placeholder: some View {
-        ZStack {
-            RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
-                .fill(Color(uiColor: .secondarySystemBackground))
-
-            Image(systemName: "photo")
-                .font(.title3)
-                .foregroundStyle(.tertiary)
-        }
+        Image(systemName: "photo")
+            .font(.title3)
+            .foregroundStyle(.tertiary)
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 }
