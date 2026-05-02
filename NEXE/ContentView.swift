@@ -17,7 +17,6 @@ struct ContentView: View {
         TabView(selection: $selectedTab) {
             NavigationStack {
                 HomeView {
-                    selectedTab = .explore
                 }
             }
             .tabItem {
@@ -32,14 +31,6 @@ struct ContentView: View {
                 Image(systemName: "gift")
             }
             .tag(AppTab.rewards)
-
-            NavigationStack {
-                ExploreView(selectedTab: $selectedTab)
-            }
-            .tabItem {
-                Image(systemName: "magnifyingglass")
-            }
-            .tag(AppTab.explore)
 
             NavigationStack {
                 OrdersView(selectedTab: $selectedTab)

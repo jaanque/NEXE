@@ -131,9 +131,6 @@ struct HomeView: View {
                 .animation(.easeInOut(duration: 0.3), value: isFilterLoading)
             }
         }
-        .fullScreenCover(isPresented: $showSearch) {
-            SearchResultsView()
-        }
         .sheet(item: $selectedReward) { reward in
             RewardCheckoutView(reward: reward)
         }
@@ -168,7 +165,6 @@ struct HomeView: View {
         }
     }
 
-    @State private var showSearch = false
 
     private var welcomeHeader: some View {
         HStack(alignment: .center) {
@@ -199,16 +195,6 @@ struct HomeView: View {
             Spacer()
             
             HStack(spacing: 16) {
-                // Buscar
-                Button {
-                    showSearch = true
-                } label: {
-                    Image(systemName: "magnifyingglass")
-                        .font(.system(size: 17, weight: .medium))
-                        .foregroundStyle(.black)
-                }
-                .buttonStyle(.plain)
-
                 // Notificaciones
                 Button {
                     UIImpactFeedbackGenerator(style: .light).impactOccurred()

@@ -5,55 +5,73 @@ struct StoreDetailSkeletonView: View {
     
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
-            // Header Image Skeleton
-            skeletonShape(width: nil, height: 240, cornerRadius: 0)
-            
             ScrollView(showsIndicators: false) {
-                VStack(alignment: .leading, spacing: 24) {
+                VStack(alignment: .leading, spacing: 0) {
                     
-                    // Store Title & Heart Skeleton
-                    VStack(alignment: .leading, spacing: 12) {
-                        HStack(alignment: .top) {
-                            skeletonShape(width: 240, height: 38, cornerRadius: 12)
+                    // Header Section Skeleton (Thinner)
+                    VStack(alignment: .leading, spacing: 14) {
+                        HStack(spacing: 12) {
+                            skeletonShape(width: 44, height: 44, cornerRadius: 22)
+                                .opacity(0.2)
+                            
+                            HStack(spacing: 12) {
+                                skeletonShape(width: 40, height: 40, cornerRadius: 0)
+                                skeletonShape(width: 150, height: 24, cornerRadius: 8)
+                            }
+                            
                             Spacer()
-                            skeletonShape(width: 44, height: 44, cornerRadius: 12)
+                            
+                            skeletonShape(width: 44, height: 44, cornerRadius: 22)
+                                .opacity(0.2)
                         }
+                        .padding(.top, 50)
                         
-                        // Metadata Skeleton
-                        HStack(spacing: 8) {
-                            skeletonShape(width: 80, height: 16, cornerRadius: 6)
-                            skeletonShape(width: 60, height: 16, cornerRadius: 6)
-                            skeletonShape(width: 100, height: 16, cornerRadius: 6)
-                        }
-                        
-                        // Status Badge Skeleton
-                        skeletonShape(width: 120, height: 32, cornerRadius: 10)
-                            .padding(.top, 4)
+                        // Search Bar Skeleton
+                        skeletonShape(width: nil, height: 50, cornerRadius: 16)
+                            .opacity(0.15)
                     }
-                    .padding(.horizontal, 20)
-                    .padding(.top, 28)
+                    .padding(.horizontal, 16)
+                    .padding(.bottom, 14)
+                    .background(Color(hex: "#006CEB")) 
                     
-                    Divider().padding(.horizontal, 20).opacity(0.6)
+                    Divider() 
+                    
+                    // Info Secundaria Skeleton
+                    VStack(alignment: .leading, spacing: 16) {
+                        HStack(spacing: 12) {
+                            skeletonShape(width: 100, height: 28, cornerRadius: 14)
+                            skeletonShape(width: 80, height: 28, cornerRadius: 14)
+                        }
+                        
+                        HStack(spacing: 12) {
+                            skeletonShape(width: 120, height: 28, cornerRadius: 14)
+                            skeletonShape(width: 140, height: 28, cornerRadius: 14)
+                        }
+                    }
+                    .padding(.horizontal, 24)
+                    .padding(.vertical, 24)
+                    
+                    Divider().padding(.horizontal, 24).opacity(0.6)
                     
                     // Products List Skeleton
                     VStack(alignment: .leading, spacing: 18) {
-                        skeletonShape(width: 140, height: 26, cornerRadius: 12)
-                            .padding(.horizontal, 20)
+                        skeletonShape(width: 180, height: 26, cornerRadius: 8)
+                            .padding(.horizontal, 24)
                         
                         ForEach(0..<4, id: \.self) { _ in
                             HStack(spacing: 16) {
-                                skeletonShape(width: 90, height: 90, cornerRadius: 16)
+                                skeletonShape(width: 80, height: 80, cornerRadius: 12)
                                 
                                 VStack(alignment: .leading, spacing: 8) {
-                                    skeletonShape(width: 160, height: 18, cornerRadius: 6)
-                                    skeletonShape(width: 80, height: 16, cornerRadius: 6)
+                                    skeletonShape(width: 140, height: 18, cornerRadius: 6)
+                                    skeletonShape(width: 60, height: 16, cornerRadius: 6)
                                 }
                                 
                                 Spacer()
                                 
-                                skeletonShape(width: 80, height: 32, cornerRadius: 12)
+                                skeletonShape(width: 36, height: 36, cornerRadius: 10)
                             }
-                            .padding(.horizontal, 20)
+                            .padding(.horizontal, 24)
                         }
                     }
                 }

@@ -105,7 +105,7 @@ struct OrdersView: View {
             
             Button {
                 withAnimation(.spring(response: 0.5, dampingFraction: 0.8)) {
-                    selectedTab = .explore
+                    selectedTab = .home
                 }
                 UISelectionFeedbackGenerator().selectionChanged()
             } label: {

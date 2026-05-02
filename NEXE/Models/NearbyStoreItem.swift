@@ -15,6 +15,7 @@ struct NearbyStoreItem: Codable, Identifiable {
     let logoURL: String?
     let latitude: Double?
     let longitude: Double?
+    let brandColorHex: String?
     
     // Campo opcional para mostrar el nombre de la categoría (se puebla tras la carga)
     var categoryName: String? = nil
@@ -131,10 +132,11 @@ struct NearbyStoreItem: Codable, Identifiable {
         case closingTime1 = "closing_time_1"
         case openingTime2 = "opening_time_2"
         case closingTime2 = "closing_time_2"
+        case brandColorHex = "brand_color_hex"
     }
     
     static let samples: [NearbyStoreItem] = [
-        .init(id: UUID(), name: "Philz Coffee", rating: 4.8, reviewsCount: 1250, categoryId: UUID(), imageURL: "https://images.unsplash.com/photo-1509042239860-f550ce710b93?w=800&q=80", description: "Café artesanal.", address: "Lleida", isNew: true, givesPoints: true, logoURL: "https://viterboristorante.it/wp-content/uploads/2019/04/philz-coffee-logo.png", latitude: 41.6176, longitude: 0.6200, openingTime1: "09:00", closingTime1: "14:00", openingTime2: "17:00", closingTime2: "21:00"),
-        .init(id: UUID(), name: "The Grove", rating: 4.5, reviewsCount: 850, categoryId: UUID(), imageURL: "https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=800&q=80", description: "Comida rica.", address: "Lleida", isNew: true, givesPoints: false, logoURL: nil, latitude: 41.6180, longitude: 0.6210, openingTime1: "10:00", closingTime1: "22:00", openingTime2: nil, closingTime2: nil)
+        .init(id: UUID(), name: "Philz Coffee", rating: 4.8, reviewsCount: 1250, categoryId: UUID(), imageURL: "https://images.unsplash.com/photo-1509042239860-f550ce710b93?w=800&q=80", description: "Café artesanal.", address: "Lleida", isNew: true, givesPoints: true, logoURL: "https://viterboristorante.it/wp-content/uploads/2019/04/philz-coffee-logo.png", latitude: 41.6176, longitude: 0.6200, brandColorHex: "#C07E5E", openingTime1: "09:00", closingTime1: "14:00", openingTime2: "17:00", closingTime2: "21:00"),
+        .init(id: UUID(), name: "The Grove", rating: 4.5, reviewsCount: 850, categoryId: UUID(), imageURL: "https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=800&q=80", description: "Comida rica.", address: "Lleida", isNew: true, givesPoints: false, logoURL: nil, latitude: 41.6180, longitude: 0.6210, brandColorHex: "#2D5A27", openingTime1: "10:00", closingTime1: "22:00", openingTime2: nil, closingTime2: nil)
     ]
 }
