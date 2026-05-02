@@ -38,15 +38,18 @@ struct HomeSkeletonView: View {
                 
 
                 
-                // 5. Nearby Vertical Stores
-                VStack(alignment: .leading, spacing: 24) {
+                // 5. Nearby Horizontal Stores (NEW)
+                VStack(alignment: .leading, spacing: 20) {
                     skeletonShape(width: 120, height: 26, cornerRadius: 8)
                         .padding(.horizontal, 16)
                     
-                    VStack(spacing: 28) {
-                        ForEach(0..<3, id: \.self) { _ in
-                            skeletonVerticalCard()
+                    ScrollView(.horizontal, showsIndicators: false) {
+                        HStack(spacing: 16) {
+                            ForEach(0..<3, id: \.self) { _ in
+                                StoreSkeletonCard()
+                            }
                         }
+                        .padding(.horizontal, 16)
                     }
                 }
             }

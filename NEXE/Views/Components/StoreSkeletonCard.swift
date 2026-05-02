@@ -2,27 +2,39 @@ import SwiftUI
 
 struct StoreSkeletonCard: View {
     @State private var isAnimating = false
+    var isVertical: Bool = false
     
     var body: some View {
-        VStack(alignment: .leading, spacing: 14) {
+        VStack(alignment: .leading, spacing: 12) {
             // Main image area
             RoundedRectangle(cornerRadius: 24, style: .continuous)
                 .fill(Color.gray.opacity(isAnimating ? 0.08 : 0.16))
-                .frame(height: 200)
+                .frame(width: isVertical ? nil : 240, height: isVertical ? 200 : 140)
+                .frame(maxWidth: isVertical ? .infinity : 240)
             
-            VStack(alignment: .leading, spacing: 10) {
+            VStack(alignment: .leading, spacing: 8) {
+                // Fila 1: Título + Favorito/Rating
                 HStack {
-                    skeletonLine(width: 200, height: 24, cornerRadius: 12)
+                    skeletonLine(width: isVertical ? 180 : 140, height: 20, cornerRadius: 10)
                     Spacer()
-                    skeletonLine(width: 60, height: 24, cornerRadius: 10)
+                    skeletonLine(width: 30, height: 20, cornerRadius: 10)
                 }
+                
+                // Fila 2: Puntos
+                skeletonLine(width: 120, height: 14, cornerRadius: 6)
+                
+                // Fila 3: Metadatos mixtos
                 HStack(spacing: 8) {
-                    skeletonLine(width: 60, height: 14, cornerRadius: 4)
-                    skeletonLine(width: 80, height: 14, cornerRadius: 4)
+                    skeletonLine(width: 60, height: 12, cornerRadius: 4)
+                    skeletonLine(width: 80, height: 12, cornerRadius: 4)
+                    if isVertical {
+                        skeletonLine(width: 50, height: 12, cornerRadius: 4)
+                    }
                 }
-                skeletonLine(width: 150, height: 16, cornerRadius: 6)
             }
             .padding(.horizontal, 4)
+            .frame(width: isVertical ? nil : 240, alignment: .leading)
+            .frame(maxWidth: isVertical ? .infinity : 240)
         }
         .onAppear {
             withAnimation(.easeInOut(duration: 1.2).repeatForever(autoreverses: true)) {

@@ -94,7 +94,7 @@ struct HomeFilterChipsView: View {
             .foregroundStyle(sortOrder != .closest ? .white : .primary)
             .padding(.horizontal, 16)
             .frame(height: 38)
-            .background(sortOrder != .closest ? Color.brandGranate : Color.primary.opacity(0.06))
+            .background(sortOrder != .closest ? Color.brandBlue : Color.primary.opacity(0.06))
             .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
         }
     }
@@ -131,7 +131,7 @@ struct HomeFilterChipsView: View {
             HStack(spacing: 4) {
                 Image(systemName: "tag.fill")
                     .font(.system(size: 11))
-                    .foregroundStyle(showOnlyOffers ? .white : Color.brandGranate)
+                    .foregroundStyle(showOnlyOffers ? .white : Color.brandBlue)
                 Text("Ofertas")
             }
         } action: {
@@ -179,7 +179,7 @@ struct HomeFilterChipsView: View {
                 .foregroundStyle(isSelected ? .white : .primary)
                 .padding(.horizontal, 16)
                 .frame(height: 38)
-                .background(isSelected ? Color.brandGranate : Color.primary.opacity(0.06))
+                .background(isSelected ? Color.brandBlue : Color.primary.opacity(0.06))
                 .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
         }
         .buttonStyle(.plain)

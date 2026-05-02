@@ -10,143 +10,158 @@ struct StoreDetailView: View {
     @State private var products: [ProductItem] = []
     @State private var isLoading = true
     @State private var quantities: [UUID: Int] = [:]
+    @State private var selectedProduct: ProductItem? = nil
 
     var body: some View {
         ZStack(alignment: .bottom) {
-            VStack(alignment: .leading, spacing: 0) {
-                // ── Cabecera: Imagen Premium (Fija) ──
-                ZStack(alignment: .topLeading) {
-                    DemoImage(urlString: store.imageURL ?? "", cornerRadius: 0)
-                        .frame(height: 240)
-                        .grayscale(store.isOpen ? 0 : 1)
-                        .clipped()
-                    
-                    // Gradiente superior para visibilidad de controles
-                    LinearGradient(colors: [.black.opacity(0.3), .clear], startPoint: .top, endPoint: .bottom)
-                        .frame(height: 100)
-                    
-                    Button { dismiss() } label: {
-                        Image(systemName: "chevron.left")
-                            .font(.system(size: 16, weight: .bold))
-                            .foregroundStyle(.white)
-                            .frame(width: 44, height: 44)
-                            .background(.ultraThinMaterial)
-                            .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
-                    }
-                    .padding(.top, 60)
-                    .padding(.leading, 20)
-                }
-
-                ScrollView(showsIndicators: false) {
-                    VStack(alignment: .leading, spacing: 24) {
+            // Fondo blanco para toda la pantalla
+            Color.white.ignoresSafeArea()
+            
+            ScrollView(showsIndicators: false) {
+                VStack(alignment: .leading, spacing: 0) {
+                    // ── Cabecera: Imagen con Parallax sutil ──
+                    ZStack(alignment: .topLeading) {
+                        DemoImage(urlString: store.imageURL ?? "", cornerRadius: 0)
+                            .frame(height: 280)
+                            .grayscale(store.isOpen ? 0 : 1)
+                            .clipped()
                         
-                        // ── Info del Local (Estilo Card) ──
-                        VStack(alignment: .leading, spacing: 14) {
-                            HStack(alignment: .center) {
+                        // Botón Volver
+                        Button { dismiss() } label: {
+                            Image(systemName: "chevron.left")
+                                .font(.system(size: 16, weight: .bold))
+                                .foregroundStyle(.white)
+                                .frame(width: 44, height: 44)
+                                .background(.ultraThinMaterial)
+                                .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+                        }
+                        .padding(.top, 60)
+                        .padding(.leading, 20)
+                    }
+                    
+                    // ── Tarjeta Flotante de Información ──
+                    VStack(alignment: .leading, spacing: 0) {
+                        // Logo y Favorito (Overlap)
+                        HStack(alignment: .bottom) {
+                            if let logoURL = store.logoURL {
+                                DemoImage(urlString: logoURL, cornerRadius: 12)
+                                    .frame(width: 70, height: 70)
+                                    .background(Color.white)
+                                    .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+                                    .overlay(
+                                        RoundedRectangle(cornerRadius: 12, style: .continuous)
+                                            .stroke(Color.white, lineWidth: 3)
+                                    )
+                                    .shadow(color: .black.opacity(0.1), radius: 8, y: 4)
+                            }
+                            
+                            Spacer()
+                            
+                            Button {
+                                if let userId = authViewModel.currentUser?.id {
+                                    Task {
+                                        await FavoritesManager.shared.toggleFavorite(userId: userId, storeId: store.id)
+                                        UIImpactFeedbackGenerator(style: .medium).impactOccurred()
+                                    }
+                                }
+                            } label: {
+                                Image(systemName: FavoritesManager.shared.isStoreFavorite(store.id) ? "heart.fill" : "heart")
+                                    .font(.system(size: 20))
+                                    .foregroundStyle(FavoritesManager.shared.isStoreFavorite(store.id) ? .red : .primary.opacity(0.4))
+                                    .frame(width: 44, height: 44)
+                                    .background(Color.white)
+                                    .clipShape(Circle())
+                                    .shadow(color: .black.opacity(0.05), radius: 5)
+                            }
+                        }
+                        .padding(.horizontal, 24)
+                        .offset(y: -35)
+                        .padding(.bottom, -20)
+                        
+                        // Info Principal
+                        VStack(alignment: .leading, spacing: 16) {
+                            HStack(alignment: .top) {
                                 Text(store.name)
-                                    .font(.system(size: 28, weight: .bold, design: .rounded))
+                                    .font(.system(size: 32, weight: .bold, design: .rounded))
                                     .foregroundStyle(Color.black)
-                                    .lineLimit(1)
+                                    .lineLimit(2)
                                 
                                 Spacer()
                                 
-                                // Rating Badge (Estilo Card)
-                                HStack(spacing: 5) {
+                                // Rating Badge
+                                HStack(spacing: 4) {
                                     Image(systemName: "star.fill")
                                         .font(.system(size: 10))
-                                        .foregroundStyle(Color.black)
-                                    
-                                    HStack(spacing: 2) {
-                                        Text(String(format: "%.1f", store.rating))
-                                            .fontWeight(.bold)
-                                            .foregroundStyle(Color.black)
-                                        Text("(\(store.reviewsCount))")
-                                            .foregroundStyle(Color.black.opacity(0.5))
-                                            .font(.system(size: 11))
-                                    }
-                                    .font(.system(size: 13, design: .rounded))
+                                    Text(String(format: "%.1f", store.rating))
+                                        .fontWeight(.bold)
+                                    Text("(\(store.reviewsCount))")
+                                        .font(.system(size: 11))
+                                        .opacity(0.5)
                                 }
+                                .font(.system(size: 14, design: .rounded))
                                 .padding(.horizontal, 10)
                                 .padding(.vertical, 6)
-                                .background(Color.black.opacity(0.06))
+                                .background(Color.black.opacity(0.05))
                                 .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
                             }
                             
-                            HStack(spacing: 6) {
+                            HStack(spacing: 8) {
                                 Text(store.categoryName ?? "Comercio")
                                 Text("•")
                                 Text(store.distance)
-                                
-                                Spacer()
-                                
-                                // Botón Favorito (Movido aquí para mantener limpieza en el título)
-                                Button {
-                                    if let userId = authViewModel.currentUser?.id {
-                                        Task {
-                                            await FavoritesManager.shared.toggleFavorite(userId: userId, storeId: store.id)
-                                            UIImpactFeedbackGenerator(style: .medium).impactOccurred()
-                                        }
+                                if store.givesPoints {
+                                    Text("•")
+                                    HStack(spacing: 4) {
+                                        Image(systemName: "star.circle.fill")
+                                        Text("Puntos NEXE")
                                     }
-                                } label: {
-                                    Image(systemName: FavoritesManager.shared.isStoreFavorite(store.id) ? "heart.fill" : "heart")
-                                        .font(.system(size: 20))
-                                        .foregroundStyle(FavoritesManager.shared.isStoreFavorite(store.id) ? .red : .primary.opacity(0.8))
+                                    .foregroundStyle(Color.brandGranate)
+                                    .fontWeight(.bold)
                                 }
                             }
-                            .font(.system(size: 15))
-                            .foregroundStyle(Color.black.opacity(0.6))
+                            .font(.system(size: 14, weight: .medium))
+                            .foregroundStyle(.secondary)
                             
-                            if store.givesPoints {
-                                HStack(spacing: 4) {
-                                    Image(systemName: "star.circle.fill")
-                                        .font(.system(size: 12))
-                                    Text("Reparte puntos NEXE")
-                                        .font(.system(size: 12, weight: .semibold))
-                                }
-                                .foregroundStyle(Color.brandGranate)
-                                .padding(.top, 2)
-                            }
-                            
-                            // Etiqueta de Estado
+                            // Estado del Local
                             HStack {
                                 if !store.isOpen, let nextTime = store.nextOpeningTime {
-                                    Text("Cerrado • Abre \(nextTime)")
-                                        .font(.system(size: 12, weight: .bold))
-                                        .foregroundStyle(.white)
-                                        .padding(.horizontal, 14)
-                                        .padding(.vertical, 8)
-                                        .background(Color.black.opacity(0.8))
-                                        .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+                                    HStack(spacing: 6) {
+                                        Circle().fill(Color.red).frame(width: 8, height: 8)
+                                        Text("Cerrado • Abre \(nextTime)")
+                                            .font(.system(size: 13, weight: .bold))
+                                    }
+                                    .foregroundStyle(.red)
+                                    .padding(.horizontal, 12)
+                                    .padding(.vertical, 8)
+                                    .background(Color.red.opacity(0.08))
+                                    .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
                                 } else {
                                     HStack(spacing: 6) {
                                         Circle().fill(Color.green).frame(width: 8, height: 8)
                                         Text("Abierto ahora")
-                                            .font(.system(size: 14, weight: .bold))
-                                            .foregroundStyle(.green)
+                                            .font(.system(size: 13, weight: .bold))
                                     }
+                                    .foregroundStyle(.green)
                                     .padding(.horizontal, 12)
-                                    .padding(.vertical, 6)
-                                    .background(Color.green.opacity(0.1))
+                                    .padding(.vertical, 8)
+                                    .background(Color.green.opacity(0.08))
                                     .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
                                 }
                                 Spacer()
                             }
-                            .padding(.top, 6)
                         }
-                        .padding(.horizontal, 20)
-                        .padding(.top, 28)
-
-                        Divider().padding(.horizontal, 20).opacity(0.6)
-
-                        // ── Lista de Productos (Premium Cards) ──
-                        VStack(alignment: .leading, spacing: 18) {
-                            Text("Productos")
-                                .font(.system(size: 22, weight: .bold, design: .rounded))
-                                .padding(.horizontal, 20)
-                                .padding(.bottom, 4)
-
+                        .padding(.horizontal, 24)
+                        .padding(.bottom, 32)
+                        
+                        // ── Sección de Productos ──
+                        VStack(alignment: .leading, spacing: 20) {
+                            Text("Productos disponibles")
+                                .font(.system(size: 20, weight: .bold, design: .rounded))
+                                .padding(.horizontal, 24)
+                            
                             if isLoading {
                                 StoreDetailSkeletonView()
+                                    .padding(.top, 20)
                             } else if products.isEmpty {
                                 VStack(spacing: 12) {
                                     Image(systemName: "cart.badge.questionmark")
@@ -159,105 +174,51 @@ struct StoreDetailView: View {
                                 .frame(maxWidth: .infinity)
                                 .padding(.vertical, 60)
                             } else {
-                                ForEach(products) { product in
-                                    HStack(spacing: 16) {
-                                        // Imagen del Producto
-                                        DemoImage(urlString: product.imageURL ?? "", cornerRadius: 12)
-                                            .frame(width: 90, height: 90)
-                                            .background(Color.primary.opacity(0.04))
-                                            .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
-
-                                        VStack(alignment: .leading, spacing: 4) {
-                                            Text(product.name)
-                                                .font(.system(size: 16, weight: .bold))
-                                                .foregroundStyle(.primary)
-                                                .lineLimit(2)
-                                            
-                                            Text(product.price.formatted(.currency(code: "EUR")))
-                                                .font(.system(size: 15, weight: .black, design: .rounded))
-                                                .foregroundStyle(.primary)
-                                            
-                                            Spacer(minLength: 0)
-                                        }
-                                        
-                                        Spacer()
-
-                                        // ── Selector de Cantidad Intuitivo ──
-                                        Group {
-                                            if (quantities[product.id] ?? 0) > 0 {
-                                                HStack(spacing: 14) {
-                                                    Button {
-                                                        withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
-                                                            quantities[product.id, default: 0] -= 1
-                                                        }
-                                                        UIImpactFeedbackGenerator(style: .light).impactOccurred()
-                                                    } label: {
-                                                        Image(systemName: "minus")
-                                                            .font(.system(size: 12, weight: .bold))
-                                                            .foregroundStyle(.primary)
-                                                            .frame(width: 32, height: 32)
-                                                            .background(Color.primary.opacity(0.06))
-                                                            .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
-                                                    }
-                                                    .transition(.scale.combined(with: .opacity))
-
-                                                    Text("\(quantities[product.id, default: 0])")
-                                                        .font(.system(size: 16, weight: .bold, design: .rounded))
-                                                        .monospacedDigit()
-                                                        .contentTransition(.numericText())
-
-                                                    Button {
-                                                        withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
-                                                            quantities[product.id, default: 0] += 1
-                                                        }
-                                                        UIImpactFeedbackGenerator(style: .medium).impactOccurred()
-                                                    } label: {
-                                                        Image(systemName: "plus")
-                                                            .font(.system(size: 12, weight: .bold))
-                                                            .foregroundStyle(.white)
-                                                            .frame(width: 32, height: 32)
-                                                            .background(Color.brandGranate)
-                                                            .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
-                                                    }
-                                                }
-                                            } else {
-                                                Button {
-                                                    withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
-                                                        quantities[product.id, default: 0] = 1
-                                                    }
-                                                    UIImpactFeedbackGenerator(style: .medium).impactOccurred()
-                                                } label: {
-                                                    HStack(spacing: 4) {
-                                                        Text("Añadir")
-                                                        Image(systemName: "plus")
-                                                    }
-                                                    .font(.system(size: 13, weight: .bold))
-                                                    .foregroundStyle(Color.brandGranate)
-                                                    .padding(.horizontal, 14)
-                                                    .padding(.vertical, 8)
-                                                    .background(Color.brandGranate.opacity(0.1))
-                                                    .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
-                                                }
-                                                .transition(.scale.combined(with: .opacity))
-                                            }
-                                        }
+                                VStack(spacing: 16) {
+                                    ForEach(products) { product in
+                                        productRow(product)
                                     }
-                                    .padding(.horizontal, 20)
-                                    .padding(.vertical, 4)
                                 }
+                                .padding(.horizontal, 16)
                             }
                         }
-                        .padding(.bottom, 120)
                     }
+                    .background(Color.white)
+                    .clipShape(RoundedCorner(radius: 32, corners: [.topLeft, .topRight]))
+                    .offset(y: -30)
+                    .padding(.bottom, 120)
                 }
             }
+            .ignoresSafeArea(edges: .top)
 
-            // ── Bottom CTA Button ──
-            let totalQuantity = quantities.values.reduce(0, +)
-            let totalPrice = products.reduce(0.0) { sum, product in
-                sum + (Double(quantities[product.id] ?? 0) * product.price)
-            }
+            // ── Bottom CTA ──
+            checkoutBar
+        }
+        .navigationBarHidden(true)
+        .task {
+            await fetchProducts()
+        }
+        .sheet(item: $selectedProduct) { product in
+            ProductDetailView(
+                product: product,
+                quantity: Binding(
+                    get: { self.quantities[product.id, default: 0] },
+                    set: { self.quantities[product.id] = $0 }
+                )
+            )
+        }
+    }
 
+    // MARK: - Components
+    
+    @ViewBuilder
+    private var checkoutBar: some View {
+        let totalQuantity = quantities.values.reduce(0, +)
+        let totalPrice = products.reduce(0.0) { sum, product in
+            sum + (Double(quantities[product.id] ?? 0) * product.price)
+        }
+
+        if totalQuantity > 0 || !store.isOpen {
             VStack {
                 Button {
                     UIImpactFeedbackGenerator(style: .medium).impactOccurred()
@@ -269,18 +230,10 @@ struct StoreDetailView: View {
                                 .padding(.horizontal, 8)
                                 .padding(.vertical, 2)
                                 .background(.white.opacity(0.2))
-                                .clipShape(Capsule())
-                                .transition(.scale.combined(with: .opacity))
+                                .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
                         }
                         
-                        let buttonText: String = {
-                            if !store.isOpen {
-                                return "Cerrado actualmente"
-                            }
-                            return totalQuantity > 0 ? "Añadir al carrito" : "Empezar pedido"
-                        }()
-                        
-                        Text(buttonText)
+                        Text(store.isOpen ? "Ver mi pedido" : "Local cerrado")
                             .font(.headline)
                         
                         Spacer()
@@ -288,16 +241,15 @@ struct StoreDetailView: View {
                         if totalPrice > 0 {
                             Text(totalPrice.formatted(.currency(code: "EUR")))
                                 .font(.headline)
-                                .monospacedDigit()
-                                .contentTransition(.numericText())
                         }
                     }
                     .foregroundStyle(.white)
                     .padding(.horizontal, 20)
                     .frame(maxWidth: .infinity)
-                    .frame(height: 54)
+                    .frame(height: 56)
                     .background(store.isOpen ? Color.brandGranate : Color.gray)
-                    .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+                    .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+                    .shadow(color: Color.brandGranate.opacity(0.2), radius: 10, y: 5)
                 }
                 .disabled(!store.isOpen)
                 .padding(.horizontal, 20)
@@ -307,12 +259,72 @@ struct StoreDetailView: View {
                 LinearGradient(colors: [.white.opacity(0), .white], startPoint: .top, endPoint: .bottom)
                     .padding(.top, -20)
             )
-            .animation(.spring(response: 0.3, dampingFraction: 0.7), value: totalQuantity)
+            .transition(.move(edge: .bottom).combined(with: .opacity))
         }
-        .navigationBarHidden(true)
-        .ignoresSafeArea(edges: .top)
-        .task {
-            await fetchProducts()
+    }
+
+    @ViewBuilder
+    private func productRow(_ product: ProductItem) -> some View {
+        HStack(spacing: 16) {
+            DemoImage(urlString: product.imageURL ?? "", cornerRadius: 12)
+                .frame(width: 80, height: 80)
+                .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+            
+            VStack(alignment: .leading, spacing: 4) {
+                Text(product.name)
+                    .font(.system(size: 16, weight: .bold))
+                    .foregroundStyle(.primary)
+                    .lineLimit(2)
+                
+                Text(product.price.formatted(.currency(code: "EUR")))
+                    .font(.system(size: 15, weight: .black, design: .rounded))
+                    .foregroundStyle(.primary)
+            }
+            
+            Spacer()
+            
+            // Selector de cantidad
+            if let qty = quantities[product.id], qty > 0 {
+                HStack(spacing: 12) {
+                    Button { quantities[product.id, default: 0] -= 1 } label: {
+                        Image(systemName: "minus")
+                            .font(.system(size: 10, weight: .bold))
+                            .frame(width: 28, height: 28)
+                            .background(Color.primary.opacity(0.05))
+                            .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+                    }
+                    
+                    Text("\(qty)")
+                        .font(.system(size: 16, weight: .bold, design: .rounded))
+                    
+                    Button { quantities[product.id, default: 0] += 1 } label: {
+                        Image(systemName: "plus")
+                            .font(.system(size: 10, weight: .bold))
+                            .foregroundStyle(.white)
+                            .frame(width: 28, height: 28)
+                            .background(Color.brandGranate)
+                            .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+                    }
+                }
+                .foregroundStyle(.primary)
+            } else {
+                Button {
+                    withAnimation { quantities[product.id, default: 0] = 1 }
+                } label: {
+                    Image(systemName: "plus")
+                        .font(.system(size: 14, weight: .bold))
+                        .foregroundStyle(Color.brandGranate)
+                        .frame(width: 36, height: 36)
+                        .background(Color.brandGranate.opacity(0.1))
+                        .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
+                }
+            }
+        }
+        .padding(12)
+        .background(Color.primary.opacity(0.02))
+        .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+        .onTapGesture {
+            selectedProduct = product
         }
     }
 
@@ -330,9 +342,200 @@ struct StoreDetailView: View {
             }
         } catch {
             print("Error: \(error)")
-            await MainActor.run {
-                self.isLoading = false
-            }
+            await MainActor.run { isLoading = false }
         }
+    }
+}
+
+// MARK: - Shapes
+
+struct RoundedCorner: Shape {
+    var radius: CGFloat = .infinity
+    var corners: UIRectCorner = .allCorners
+
+    func path(in rect: CGRect) -> Path {
+        let path = UIBezierPath(roundedRect: rect, byRoundingCorners: corners, cornerRadii: CGSize(width: radius, height: radius))
+        return Path(path.cgPath)
+    }
+}
+
+// MARK: - Product Detail View
+
+struct ProductDetailView: View {
+    @Environment(\.dismiss) private var dismiss
+    let product: ProductItem
+    @Binding var quantity: Int
+    
+    var body: some View {
+        ZStack(alignment: .bottom) {
+            Color.white.ignoresSafeArea()
+            
+            ScrollView(showsIndicators: false) {
+                VStack(alignment: .leading, spacing: 0) {
+                    // ── Cabecera: Imagen de Producto ──
+                    ZStack(alignment: .topLeading) {
+                        DemoImage(urlString: product.imageURL ?? "", cornerRadius: 0)
+                            .frame(height: 380)
+                            .clipped()
+                        
+                        // Gradiente inferior para suavizar transición
+                        LinearGradient(colors: [.clear, .white.opacity(0.8), .white], startPoint: .top, endPoint: .bottom)
+                            .frame(height: 100)
+                            .frame(maxHeight: .infinity, alignment: .bottom)
+                        
+                        // Botón Volver
+                        Button { dismiss() } label: {
+                            Image(systemName: "chevron.left")
+                                .font(.system(size: 16, weight: .bold))
+                                .foregroundStyle(.white)
+                                .frame(width: 44, height: 44)
+                                .background(.ultraThinMaterial)
+                                .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+                        }
+                        .padding(.top, 60)
+                        .padding(.leading, 20)
+                    }
+                    
+                    VStack(alignment: .leading, spacing: 24) {
+                        // Info Principal
+                        VStack(alignment: .leading, spacing: 12) {
+                            HStack(alignment: .top) {
+                                Text(product.name)
+                                    .font(.system(size: 28, weight: .bold, design: .rounded))
+                                    .foregroundStyle(Color.black)
+                                
+                                Spacer()
+                                
+                                if product.isFlashOffer {
+                                    Text("OFERTA")
+                                        .font(.system(size: 10, weight: .black))
+                                        .foregroundStyle(.white)
+                                        .padding(.horizontal, 8)
+                                        .padding(.vertical, 4)
+                                        .background(Color.orange)
+                                        .clipShape(RoundedRectangle(cornerRadius: 6, style: .continuous))
+                                }
+                            }
+                            
+                            HStack(alignment: .firstTextBaseline, spacing: 8) {
+                                Text(product.price.formatted(.currency(code: "EUR")))
+                                    .font(.system(size: 24, weight: .black, design: .rounded))
+                                    .foregroundStyle(Color.black)
+                                
+                                if let original = product.originalPrice {
+                                    Text(original.formatted(.currency(code: "EUR")))
+                                        .font(.system(size: 16))
+                                        .foregroundStyle(.secondary)
+                                        .strikethrough()
+                                }
+                                
+                                Spacer()
+                                
+                                // Badge de Puntos
+                                if product.rewardPoints > 0 {
+                                    HStack(spacing: 4) {
+                                        Image(systemName: "star.circle.fill")
+                                        Text("+\(product.rewardPoints) pts")
+                                    }
+                                    .font(.system(size: 13, weight: .bold))
+                                    .foregroundStyle(Color.brandGranate)
+                                    .padding(.horizontal, 10)
+                                    .padding(.vertical, 6)
+                                    .background(Color.brandGranate.opacity(0.08))
+                                    .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+                                }
+                            }
+                        }
+                        
+                        Divider().opacity(0.5)
+                        
+                        // Descripción
+                        VStack(alignment: .leading, spacing: 12) {
+                            Text("Descripción")
+                                .font(.system(size: 18, weight: .bold, design: .rounded))
+                            
+                            Text("Este es un producto seleccionado de NEXE. Disfruta de la mejor calidad y frescura directamente desde nuestros comercios locales asociados. Cada compra apoya el crecimiento de tu ciudad.")
+                                .font(.system(size: 16))
+                                .foregroundStyle(.secondary)
+                                .lineSpacing(4)
+                        }
+                        
+                        // Selector de Cantidad Grande
+                        VStack(spacing: 16) {
+                            Text("¿Cuántos quieres?")
+                                .font(.system(size: 14, weight: .bold))
+                                .foregroundStyle(.secondary)
+                                .textCase(.uppercase)
+                            
+                            HStack(spacing: 40) {
+                                Button {
+                                    if quantity > 0 {
+                                        quantity -= 1
+                                        UIImpactFeedbackGenerator(style: .light).impactOccurred()
+                                    }
+                                } label: {
+                                    Image(systemName: "minus")
+                                        .font(.title2.bold())
+                                        .foregroundStyle(quantity > 0 ? Color.black : Color.gray.opacity(0.3))
+                                        .frame(width: 56, height: 56)
+                                        .background(Color.black.opacity(0.05))
+                                        .clipShape(Circle())
+                                }
+                                .disabled(quantity == 0)
+                                
+                                Text("\(quantity)")
+                                    .font(.system(size: 40, weight: .bold, design: .rounded))
+                                    .monospacedDigit()
+                                    .contentTransition(.numericText())
+                                
+                                Button {
+                                    quantity += 1
+                                    UIImpactFeedbackGenerator(style: .medium).impactOccurred()
+                                } label: {
+                                    Image(systemName: "plus")
+                                        .font(.title2.bold())
+                                        .foregroundStyle(.white)
+                                        .frame(width: 56, height: 56)
+                                        .background(Color.brandGranate)
+                                        .clipShape(Circle())
+                                }
+                            }
+                        }
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 20)
+                        .background(Color.black.opacity(0.02))
+                        .clipShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
+                    }
+                    .padding(24)
+                    .padding(.bottom, 120)
+                }
+            }
+            .ignoresSafeArea(edges: .top)
+            
+            // Botón de Acción Principal
+            VStack {
+                Button {
+                    if quantity == 0 { quantity = 1 }
+                    UIImpactFeedbackGenerator(style: .medium).impactOccurred()
+                    dismiss()
+                } label: {
+                    Text(quantity > 0 ? "Actualizar carrito" : "Añadir al carrito")
+                        .font(.system(size: 18, weight: .bold))
+                        .foregroundStyle(.white)
+                        .frame(maxWidth: .infinity)
+                        .frame(height: 58)
+                        .background(Color.brandGranate)
+                        .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+                        .shadow(color: Color.brandGranate.opacity(0.3), radius: 10, y: 5)
+                }
+                .padding(.horizontal, 24)
+                .padding(.bottom, 34)
+            }
+            .background(
+                LinearGradient(colors: [.white.opacity(0), .white], startPoint: .top, endPoint: .bottom)
+                    .padding(.top, -20)
+            )
+        }
+        .navigationBarHidden(true)
     }
 }
