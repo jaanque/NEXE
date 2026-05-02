@@ -21,7 +21,7 @@ struct ProfileView: View {
                             VStack(spacing: 24) {
                                 // Cabecera Simple
                                 VStack(spacing: 16) {
-                                    Circle()
+                                    RoundedRectangle(cornerRadius: 12, style: .continuous)
                                         .fill(Color.brandGreen.opacity(0.1))
                                         .frame(width: 80, height: 80)
                                         .overlay(

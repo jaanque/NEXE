@@ -26,7 +26,7 @@ struct FavoritesView: View {
                     description: "Inicia sesión para guardar los locales y productos que más te gustan y verlos aquí."
                 )
             } else if isLoading {
-                ProgressView()
+                FavoritesSkeletonView()
                     .frame(maxHeight: .infinity)
             } else if favorites.isEmpty {
                 emptyState
@@ -108,7 +108,7 @@ struct FavoritesView: View {
                             .foregroundStyle(.red)
                             .padding(10)
                             .background(.black.opacity(0.3))
-                            .clipShape(Circle())
+                            .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
                             .padding(12)
                     }
                 }
@@ -178,7 +178,7 @@ struct FavoritesView: View {
                     .padding(.horizontal, 40)
                     .padding(.vertical, 18)
                     .background(Color.brandGreen)
-                    .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
+                    .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
             }
             Spacer()
         }

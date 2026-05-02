@@ -4,19 +4,23 @@ struct StoreSkeletonCard: View {
     @State private var isAnimating = false
     
     var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
+        VStack(alignment: .leading, spacing: 14) {
             // Main image area
-            RoundedRectangle(cornerRadius: 20, style: .continuous)
+            RoundedRectangle(cornerRadius: 24, style: .continuous)
                 .fill(Color.gray.opacity(isAnimating ? 0.08 : 0.16))
-                .frame(height: 180)
+                .frame(height: 200)
             
             VStack(alignment: .leading, spacing: 10) {
-                skeletonLine(width: 240, height: 22)
-                HStack(spacing: 8) {
-                    skeletonLine(width: 60, height: 14)
-                    skeletonLine(width: 80, height: 14)
+                HStack {
+                    skeletonLine(width: 200, height: 24, cornerRadius: 12)
+                    Spacer()
+                    skeletonLine(width: 60, height: 24, cornerRadius: 10)
                 }
-                skeletonLine(width: 150, height: 16)
+                HStack(spacing: 8) {
+                    skeletonLine(width: 60, height: 14, cornerRadius: 4)
+                    skeletonLine(width: 80, height: 14, cornerRadius: 4)
+                }
+                skeletonLine(width: 150, height: 16, cornerRadius: 6)
             }
             .padding(.horizontal, 4)
         }
@@ -27,8 +31,8 @@ struct StoreSkeletonCard: View {
         }
     }
     
-    private func skeletonLine(width: CGFloat, height: CGFloat) -> some View {
-        RoundedRectangle(cornerRadius: 6, style: .continuous)
+    private func skeletonLine(width: CGFloat, height: CGFloat, cornerRadius: CGFloat = 6) -> some View {
+        RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
             .fill(Color.gray.opacity(isAnimating ? 0.08 : 0.16))
             .frame(width: width, height: height)
     }

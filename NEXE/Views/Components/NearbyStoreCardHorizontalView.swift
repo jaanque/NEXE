@@ -5,75 +5,71 @@ struct NearbyStoreCardHorizontalView: View {
     
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
+            // Imagen
             ZStack(alignment: .bottomLeading) {
-                // Imagen Principal (Más amplia)
                 DemoImage(urlString: store.imageURL ?? "", cornerRadius: 24)
-                    .frame(width: 220, height: 300)
-                    .overlay(
-                        LinearGradient(
-                            colors: [.black.opacity(0.3), .clear],
-                            startPoint: .bottom,
-                            endPoint: .center
-                        )
-                    )
+                    .frame(width: 260, height: 180)
+                    .clipShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
                 
-                // Logo circular pequeño en la esquina (Opcional, pero da toque premium)
-                if let logo = store.logoURL {
-                    DemoImage(urlString: logo, cornerRadius: 12)
-                        .frame(width: 32, height: 32)
-                        .clipShape(Circle())
-                        .overlay(Circle().stroke(.white, lineWidth: 2))
-                        .shadow(radius: 4)
-                        .padding(12)
+                if let logoURL = store.logoURL {
+                    DemoImage(urlString: logoURL, cornerRadius: 12)
+                        .frame(width: 44, height: 44)
+                        .background(Color.white)
+                        .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 12, style: .continuous)
+                                .stroke(Color.white, lineWidth: 2)
+                        )
+                        .shadow(color: .black.opacity(0.1), radius: 4)
+                        .padding(10)
                 }
             }
-            .frame(width: 220, height: 300)
-            .clipShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
-            .shadow(color: .black.opacity(0.1), radius: 10, x: 0, y: 5)
             
-            // Metadatos Debajo
+            // Metadatos
             VStack(alignment: .leading, spacing: 4) {
-                Text(store.name)
-                    .font(.system(size: 18, weight: .bold))
-                    .foregroundStyle(.primary)
-                    .lineLimit(1)
-                
-                HStack(spacing: 4) {
-                    // Rating
-                    HStack(spacing: 3) {
+                HStack(alignment: .center) {
+                    Text(store.name)
+                        .font(.system(size: 19, weight: .bold, design: .rounded))
+                        .foregroundStyle(Color.black)
+                        .lineLimit(1)
+                    
+                    Spacer()
+                    
+                    // Rating Badge
+                    HStack(spacing: 4) {
                         Image(systemName: "star.fill")
-                            .font(.system(size: 10))
-                            .foregroundStyle(.orange)
-                        
+                            .font(.system(size: 8))
+                            .foregroundStyle(Color.black)
                         Text(String(format: "%.1f", store.rating))
-                            .font(.caption.weight(.bold))
-                        
-                        Text("(\(store.reviewsCount))")
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
+                            .font(.system(size: 11, weight: .bold))
+                            .foregroundStyle(Color.black)
                     }
-                    
-                    Text("•")
-                        .foregroundStyle(.secondary.opacity(0.5))
-                    
-                    Text(store.distance)
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
+                    .padding(.horizontal, 8)
+                    .padding(.vertical, 4)
+                    .background(Color.black.opacity(0.06))
+                    .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
                 }
+                
+                HStack(spacing: 5) {
+                    Text(store.categoryName ?? "Comercio")
+                    Text("•")
+                    Text(store.distance)
+                }
+                .font(.system(size: 13))
+                .foregroundStyle(Color.black.opacity(0.6))
                 
                 if store.givesPoints {
                     HStack(spacing: 4) {
                         Image(systemName: "star.circle.fill")
-                            .font(.system(size: 12))
-                        Text("Reparte puntos NEXE")
-                            .font(.system(size: 12, weight: .semibold))
+                            .font(.system(size: 10))
+                        Text("Reparte puntos")
+                            .font(.system(size: 10, weight: .semibold))
                     }
-                    .foregroundStyle(Color.brandGreen)
-                    .padding(.top, 2)
+                    .foregroundStyle(Color.brandGranate)
                 }
             }
             .padding(.horizontal, 4)
-            .frame(width: 220, alignment: .leading)
+            .frame(width: 260, alignment: .leading)
         }
     }
 }

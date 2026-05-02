@@ -236,7 +236,7 @@ struct FullScreenQRView: View {
     private func loadSettings() {
         if let data = UserDefaults.standard.data(forKey: "nexe_qr_settings"),
            let settings = try? JSONDecoder().decode(QRSettings.self, from: data) {
-            self.bgColor = Color(hex: settings.bgColorHex) ?? .brandBackground
+            self.bgColor = Color(hex: settings.bgColorHex)
             self.patternEmoji = settings.patternEmoji
         }
     }

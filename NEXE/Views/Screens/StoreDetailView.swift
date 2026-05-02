@@ -14,150 +14,240 @@ struct StoreDetailView: View {
     var body: some View {
         ZStack(alignment: .bottom) {
             VStack(alignment: .leading, spacing: 0) {
-                // ── Cabecera: Imagen Simple ──
-                AsyncImage(url: URL(string: store.imageURL ?? "")) { img in
-                    img.resizable().scaledToFill()
-                } placeholder: {
-                    Color.gray.opacity(0.1)
-                }
-                .frame(height: 200)
-                .clipped()
-                .overlay(alignment: .topLeading) {
+                // ── Cabecera: Imagen Premium (Fija) ──
+                ZStack(alignment: .topLeading) {
+                    DemoImage(urlString: store.imageURL ?? "", cornerRadius: 0)
+                        .frame(height: 240)
+                        .grayscale(store.isOpen ? 0 : 1)
+                        .clipped()
+                    
+                    // Gradiente superior para visibilidad de controles
+                    LinearGradient(colors: [.black.opacity(0.3), .clear], startPoint: .top, endPoint: .bottom)
+                        .frame(height: 100)
+                    
                     Button { dismiss() } label: {
                         Image(systemName: "chevron.left")
-                            .font(.body.weight(.bold))
+                            .font(.system(size: 16, weight: .bold))
                             .foregroundStyle(.white)
-                            .padding(12)
-                            .background(.black.opacity(0.3))
-                            .clipShape(Circle())
+                            .frame(width: 44, height: 44)
+                            .background(.ultraThinMaterial)
+                            .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
                     }
-                    .padding(.top, 50)
-                    .padding(.leading, 16)
+                    .padding(.top, 60)
+                    .padding(.leading, 20)
                 }
 
                 ScrollView(showsIndicators: false) {
-                    VStack(alignment: .leading, spacing: 20) {
+                    VStack(alignment: .leading, spacing: 24) {
                         
-                        // ── Info del Local ──
-                        VStack(alignment: .leading, spacing: 8) {
-                            HStack {
+                        // ── Info del Local (Estilo Card) ──
+                        VStack(alignment: .leading, spacing: 14) {
+                            HStack(alignment: .center) {
                                 Text(store.name)
-                                    .font(.title.weight(.bold))
+                                    .font(.system(size: 28, weight: .bold, design: .rounded))
+                                    .foregroundStyle(Color.black)
+                                    .lineLimit(1)
+                                
                                 Spacer()
+                                
+                                // Rating Badge (Estilo Card)
+                                HStack(spacing: 5) {
+                                    Image(systemName: "star.fill")
+                                        .font(.system(size: 10))
+                                        .foregroundStyle(Color.black)
+                                    
+                                    HStack(spacing: 2) {
+                                        Text(String(format: "%.1f", store.rating))
+                                            .fontWeight(.bold)
+                                            .foregroundStyle(Color.black)
+                                        Text("(\(store.reviewsCount))")
+                                            .foregroundStyle(Color.black.opacity(0.5))
+                                            .font(.system(size: 11))
+                                    }
+                                    .font(.system(size: 13, design: .rounded))
+                                }
+                                .padding(.horizontal, 10)
+                                .padding(.vertical, 6)
+                                .background(Color.black.opacity(0.06))
+                                .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
+                            }
+                            
+                            HStack(spacing: 6) {
+                                Text(store.categoryName ?? "Comercio")
+                                Text("•")
+                                Text(store.distance)
+                                
+                                Spacer()
+                                
+                                // Botón Favorito (Movido aquí para mantener limpieza en el título)
                                 Button {
                                     if let userId = authViewModel.currentUser?.id {
                                         Task {
                                             await FavoritesManager.shared.toggleFavorite(userId: userId, storeId: store.id)
-                                            UIImpactFeedbackGenerator(style: .light).impactOccurred()
+                                            UIImpactFeedbackGenerator(style: .medium).impactOccurred()
                                         }
                                     }
                                 } label: {
                                     Image(systemName: FavoritesManager.shared.isStoreFavorite(store.id) ? "heart.fill" : "heart")
-                                        .foregroundStyle(FavoritesManager.shared.isStoreFavorite(store.id) ? .red : .primary)
+                                        .font(.system(size: 20))
+                                        .foregroundStyle(FavoritesManager.shared.isStoreFavorite(store.id) ? .red : .primary.opacity(0.8))
                                 }
                             }
-
-                            HStack(spacing: 12) {
+                            .font(.system(size: 15))
+                            .foregroundStyle(Color.black.opacity(0.6))
+                            
+                            if store.givesPoints {
                                 HStack(spacing: 4) {
-                                    Image(systemName: "star.fill").foregroundStyle(.orange).font(.caption)
-                                    Text(String(format: "%.1f", store.rating)).font(.subheadline).bold()
+                                    Image(systemName: "star.circle.fill")
+                                        .font(.system(size: 12))
+                                    Text("Reparte puntos NEXE")
+                                        .font(.system(size: 12, weight: .semibold))
                                 }
-                                Text(store.distance).font(.subheadline).foregroundStyle(.secondary)
-                                Text(store.isOpen ? "Abierto" : "Cerrado")
-                                    .font(.subheadline)
-                                    .foregroundStyle(store.isOpen ? .green : .red)
+                                .foregroundStyle(Color.brandGranate)
+                                .padding(.top, 2)
                             }
                             
-                            if let desc = store.description {
-                                Text(desc)
-                                    .font(.body)
-                                    .foregroundStyle(.secondary)
-                                    .padding(.top, 4)
+                            // Etiqueta de Estado
+                            HStack {
+                                if !store.isOpen, let nextTime = store.nextOpeningTime {
+                                    Text("Cerrado • Abre \(nextTime)")
+                                        .font(.system(size: 12, weight: .bold))
+                                        .foregroundStyle(.white)
+                                        .padding(.horizontal, 14)
+                                        .padding(.vertical, 8)
+                                        .background(Color.black.opacity(0.8))
+                                        .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+                                } else {
+                                    HStack(spacing: 6) {
+                                        Circle().fill(Color.green).frame(width: 8, height: 8)
+                                        Text("Abierto ahora")
+                                            .font(.system(size: 14, weight: .bold))
+                                            .foregroundStyle(.green)
+                                    }
+                                    .padding(.horizontal, 12)
+                                    .padding(.vertical, 6)
+                                    .background(Color.green.opacity(0.1))
+                                    .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+                                }
+                                Spacer()
                             }
+                            .padding(.top, 6)
                         }
                         .padding(.horizontal, 20)
-                        .padding(.top, 24)
+                        .padding(.top, 28)
 
-                        Divider().padding(.horizontal, 20)
+                        Divider().padding(.horizontal, 20).opacity(0.6)
 
-                        // ── Lista de Productos Simple ──
-                        VStack(alignment: .leading, spacing: 16) {
+                        // ── Lista de Productos (Premium Cards) ──
+                        VStack(alignment: .leading, spacing: 18) {
                             Text("Productos")
-                                .font(.headline)
+                                .font(.system(size: 22, weight: .bold, design: .rounded))
                                 .padding(.horizontal, 20)
+                                .padding(.bottom, 4)
 
                             if isLoading {
-                                ProgressView()
-                                    .frame(maxWidth: .infinity)
-                                    .padding(.top, 20)
+                                StoreDetailSkeletonView()
                             } else if products.isEmpty {
-                                Text("No hay productos")
-                                    .foregroundStyle(.secondary)
-                                    .padding(.horizontal, 20)
+                                VStack(spacing: 12) {
+                                    Image(systemName: "cart.badge.questionmark")
+                                        .font(.largeTitle)
+                                        .foregroundStyle(.tertiary)
+                                    Text("No hay productos disponibles")
+                                        .font(.subheadline)
+                                        .foregroundStyle(.secondary)
+                                }
+                                .frame(maxWidth: .infinity)
+                                .padding(.vertical, 60)
                             } else {
                                 ForEach(products) { product in
-                                    HStack(spacing: 12) {
-                                        AsyncImage(url: URL(string: product.imageURL ?? "")) { img in
-                                            img.resizable().scaledToFill()
-                                        } placeholder: {
-                                            Color.gray.opacity(0.1)
-                                        }
-                                        .frame(width: 60, height: 60)
-                                        .clipShape(RoundedRectangle(cornerRadius: 8))
+                                    HStack(spacing: 16) {
+                                        // Imagen del Producto
+                                        DemoImage(urlString: product.imageURL ?? "", cornerRadius: 12)
+                                            .frame(width: 90, height: 90)
+                                            .background(Color.primary.opacity(0.04))
+                                            .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
 
-                                        VStack(alignment: .leading, spacing: 2) {
+                                        VStack(alignment: .leading, spacing: 4) {
                                             Text(product.name)
-                                                .font(.subheadline.weight(.medium))
-                                            Text(product.price.formatted(.currency(code: "EUR")))
-                                                .font(.caption.weight(.bold))
+                                                .font(.system(size: 16, weight: .bold))
                                                 .foregroundStyle(.primary)
+                                                .lineLimit(2)
+                                            
+                                            Text(product.price.formatted(.currency(code: "EUR")))
+                                                .font(.system(size: 15, weight: .black, design: .rounded))
+                                                .foregroundStyle(.primary)
+                                            
+                                            Spacer(minLength: 0)
                                         }
+                                        
                                         Spacer()
 
-                                        // ── Selector de Cantidad ──
-                                        HStack(spacing: 12) {
+                                        // ── Selector de Cantidad Intuitivo ──
+                                        Group {
                                             if (quantities[product.id] ?? 0) > 0 {
+                                                HStack(spacing: 14) {
+                                                    Button {
+                                                        withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
+                                                            quantities[product.id, default: 0] -= 1
+                                                        }
+                                                        UIImpactFeedbackGenerator(style: .light).impactOccurred()
+                                                    } label: {
+                                                        Image(systemName: "minus")
+                                                            .font(.system(size: 12, weight: .bold))
+                                                            .foregroundStyle(.primary)
+                                                            .frame(width: 32, height: 32)
+                                                            .background(Color.primary.opacity(0.06))
+                                                            .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+                                                    }
+                                                    .transition(.scale.combined(with: .opacity))
+
+                                                    Text("\(quantities[product.id, default: 0])")
+                                                        .font(.system(size: 16, weight: .bold, design: .rounded))
+                                                        .monospacedDigit()
+                                                        .contentTransition(.numericText())
+
+                                                    Button {
+                                                        withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
+                                                            quantities[product.id, default: 0] += 1
+                                                        }
+                                                        UIImpactFeedbackGenerator(style: .medium).impactOccurred()
+                                                    } label: {
+                                                        Image(systemName: "plus")
+                                                            .font(.system(size: 12, weight: .bold))
+                                                            .foregroundStyle(.white)
+                                                            .frame(width: 32, height: 32)
+                                                            .background(Color.brandGranate)
+                                                            .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+                                                    }
+                                                }
+                                            } else {
                                                 Button {
                                                     withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
-                                                        quantities[product.id, default: 0] -= 1
+                                                        quantities[product.id, default: 0] = 1
                                                     }
-                                                    UIImpactFeedbackGenerator(style: .light).impactOccurred()
+                                                    UIImpactFeedbackGenerator(style: .medium).impactOccurred()
                                                 } label: {
-                                                    Image(systemName: "minus.circle.fill")
-                                                        .font(.title3)
-                                                        .foregroundStyle(Color.brandGranate.opacity(0.6))
-                                                }
-                                                .transition(.asymmetric(insertion: .scale.combined(with: .opacity), removal: .scale.combined(with: .opacity)))
-
-                                                Text("\(quantities[product.id, default: 0])")
-                                                    .font(.subheadline.weight(.bold))
-                                                    .monospacedDigit()
-                                                    .contentTransition(.numericText())
-                                                    .frame(minWidth: 20)
-                                            }
-
-                                            Button {
-                                                withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
-                                                    quantities[product.id, default: 0] += 1
-                                                }
-                                                UIImpactFeedbackGenerator(style: .light).impactOccurred()
-                                            } label: {
-                                                Image(systemName: "plus.circle.fill")
-                                                    .font(.title3)
+                                                    HStack(spacing: 4) {
+                                                        Text("Añadir")
+                                                        Image(systemName: "plus")
+                                                    }
+                                                    .font(.system(size: 13, weight: .bold))
                                                     .foregroundStyle(Color.brandGranate)
+                                                    .padding(.horizontal, 14)
+                                                    .padding(.vertical, 8)
+                                                    .background(Color.brandGranate.opacity(0.1))
+                                                    .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+                                                }
+                                                .transition(.scale.combined(with: .opacity))
                                             }
                                         }
                                     }
                                     .padding(.horizontal, 20)
-                                    .padding(.vertical, 8)
-                                    
-                                    if product.id != products.last?.id {
-                                        Divider().padding(.horizontal, 20)
-                                    }
+                                    .padding(.vertical, 4)
                                 }
                             }
                         }
-                        .padding(.bottom, 100) // Espacio para el botón CTA
+                        .padding(.bottom, 120)
                     }
                 }
             }
@@ -207,7 +297,7 @@ struct StoreDetailView: View {
                     .frame(maxWidth: .infinity)
                     .frame(height: 54)
                     .background(store.isOpen ? Color.brandGranate : Color.gray)
-                    .clipShape(RoundedRectangle(cornerRadius: 16))
+                    .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
                 }
                 .disabled(!store.isOpen)
                 .padding(.horizontal, 20)
@@ -240,7 +330,9 @@ struct StoreDetailView: View {
             }
         } catch {
             print("Error: \(error)")
-            isLoading = false
+            await MainActor.run {
+                self.isLoading = false
+            }
         }
     }
 }

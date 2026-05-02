@@ -44,24 +44,22 @@ struct OrdersView: View {
                             // RECOMPENSAS
                             if isLoadingRedemptions {
                                 OrdersSkeletonView()
+                            } else if redemptions.isEmpty {
+                                emptyState(
+                                    icon: "gift",
+                                    title: "Sin recompensas",
+                                    description: "Aquí aparecerán los cupones y premios que hayas canjeado con tus puntos."
+                                )
                             } else {
                                 ScrollView {
                                     LazyVStack(spacing: 24) {
-                                        if redemptions.isEmpty {
-                                            emptyState(
-                                                icon: "gift",
-                                                title: "Sin recompensas",
-                                                description: "Aquí aparecerán los cupones y premios que hayas canjeado con tus puntos."
-                                            )
-                                        } else {
-                                            ForEach(redemptions) { redemption in
-                                                RedemptionRow(redemption: redemption)
-                                                    .onTapGesture {
-                                                        selectedRedemption = redemption
-                                                    }
-                                            }
-                                            .padding(.top, 16)
+                                        ForEach(redemptions) { redemption in
+                                            RedemptionRow(redemption: redemption)
+                                                .onTapGesture {
+                                                    selectedRedemption = redemption
+                                                }
                                         }
+                                        .padding(.top, 16)
                                     }
                                     .padding(.horizontal, 16)
                                 }
@@ -120,7 +118,7 @@ struct OrdersView: View {
                 .padding(.horizontal, 40)
                 .padding(.vertical, 18)
                 .background(Color.brandGreen)
-                .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
+                .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
             }
             .padding(.top, 10)
             Spacer()
@@ -247,9 +245,9 @@ struct RedemptionRow: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
             // Imagen panorámica
-            DemoImage(urlString: redemption.reward.imageURL ?? "", cornerRadius: 20)
+            DemoImage(urlString: redemption.reward.imageURL ?? "", cornerRadius: 24)
                 .frame(height: 180)
-                .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
+                .clipShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
             
             VStack(alignment: .leading, spacing: 6) {
                 HStack(alignment: .top) {
@@ -262,7 +260,7 @@ struct RedemptionRow: View {
                         .padding(.horizontal, 10)
                         .padding(.vertical, 4)
                         .background(Color.brandGreen.opacity(0.1))
-                        .clipShape(Capsule())
+                        .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
                 }
                 
                 HStack(spacing: 4) {
@@ -314,7 +312,7 @@ struct RedemptionDetailView: View {
                         .frame(width: 200, height: 200)
                         .padding(20)
                         .background(Color.white)
-                        .clipShape(RoundedRectangle(cornerRadius: 28, style: .continuous))
+                        .clipShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
                         .shadow(color: .black.opacity(0.05), radius: 20)
                 }
                 
@@ -336,7 +334,7 @@ struct RedemptionDetailView: View {
                         .padding(.vertical, 6)
                         .background(Color.brandGreen.opacity(0.1))
                         .foregroundStyle(Color.brandGreen)
-                        .clipShape(Capsule())
+                        .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
                 }
             }
             
@@ -359,7 +357,7 @@ struct RedemptionDetailView: View {
                         .frame(maxWidth: .infinity)
                         .frame(height: 56)
                         .background(Color.brandGreen)
-                        .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+                        .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
                 }
                 .padding(.horizontal, 24)
             }

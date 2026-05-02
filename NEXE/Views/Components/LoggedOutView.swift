@@ -6,46 +6,41 @@ struct LoggedOutView: View {
     let description: String
     
     @Environment(AuthViewModel.self) private var authViewModel
-    @State private var showAuth = false
-    @State private var authMode: AuthMode = .login
+    @State private var activeAuthMode: AuthMode?
     
-    enum AuthMode {
+    enum AuthMode: String, Identifiable {
         case login
         case signup
+        var id: String { self.rawValue }
     }
     
     var body: some View {
-        VStack(spacing: 32) {
-            Spacer()
-            
-            // Icono ilustrativo con gradiente
-            ZStack {
-                Circle()
-                    .fill(Color.brandGreen.opacity(0.1))
-                    .frame(width: 120, height: 120)
-                
+        VStack(spacing: 40) {
+            // Cabecera limpia
+            VStack(spacing: 24) {
                 Image(systemName: icon)
-                    .font(.system(size: 50))
+                    .font(.system(size: 70))
                     .foregroundStyle(Color.brandGreen)
-            }
-            
-            VStack(spacing: 12) {
-                Text(title)
-                    .font(.system(size: 24, weight: .bold))
-                    .multilineTextAlignment(.center)
+                    .padding(.top, 60)
                 
-                Text(description)
-                    .font(.system(size: 16))
-                    .foregroundStyle(.secondary)
-                    .multilineTextAlignment(.center)
-                    .padding(.horizontal, 40)
+                VStack(spacing: 12) {
+                    Text(title)
+                        .font(.title2.bold())
+                        .multilineTextAlignment(.center)
+                        .padding(.horizontal, 40)
+                    
+                    Text(description)
+                        .font(.body)
+                        .foregroundStyle(.secondary)
+                        .multilineTextAlignment(.center)
+                        .padding(.horizontal, 50)
+                }
             }
             
+            // Acciones directas
             VStack(spacing: 16) {
-                // Botón Principal: Iniciar Sesión
                 Button {
-                    authMode = .login
-                    showAuth = true
+                    activeAuthMode = .login
                 } label: {
                     Text("Iniciar Sesión")
                         .font(.headline)
@@ -53,32 +48,26 @@ struct LoggedOutView: View {
                         .frame(maxWidth: .infinity)
                         .frame(height: 56)
                         .background(Color.brandGreen)
-                        .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+                        .clipShape(RoundedRectangle(cornerRadius: 14))
                 }
                 
-                // Botón Secundario: Crear Cuenta
                 Button {
-                    authMode = .signup
-                    showAuth = true
+                    activeAuthMode = .signup
                 } label: {
                     Text("Crear una cuenta")
                         .font(.headline)
                         .foregroundStyle(Color.brandGreen)
-                        .frame(maxWidth: .infinity)
-                        .frame(height: 56)
-                        .background(Color.brandGreen.opacity(0.1))
-                        .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+                        .padding(.vertical, 8)
                 }
             }
-            .padding(.horizontal, 24)
-            .padding(.top, 20)
+            .padding(.horizontal, 40)
             
             Spacer()
         }
-        .padding(.bottom, 40)
-        .sheet(isPresented: $showAuth) {
+        .background(Color.brandBackground)
+        .sheet(item: $activeAuthMode) { mode in
             NavigationStack {
-                if authMode == .login {
+                if mode == .login {
                     LoginView(viewModel: authViewModel)
                 } else {
                     SignUpView(viewModel: authViewModel)
@@ -91,13 +80,10 @@ struct LoggedOutView: View {
 }
 
 #Preview {
-    ZStack {
-        Color.brandBackground.ignoresSafeArea()
-        LoggedOutView(
-            icon: "person.circle",
-            title: "Inicia sesión para ver tu perfil",
-            description: "Accede a tus puntos, pedidos y favoritos desde cualquier dispositivo."
-        )
-        .environment(AuthViewModel())
-    }
+    LoggedOutView(
+        icon: "person.circle",
+        title: "Inicia sesión para ver tu perfil",
+        description: "Accede a tus puntos, pedidos y favoritos desde cualquier dispositivo."
+    )
+    .environment(AuthViewModel())
 }

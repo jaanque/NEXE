@@ -9,15 +9,15 @@ struct ExploreSkeletonView: View {
                 
                 // 1. Search Bar Skeleton (exploreHeader)
                 VStack(alignment: .leading, spacing: 8) {
-                    skeletonShape(width: 140, height: 28, cornerRadius: 8)
-                    skeletonShape(width: UIScreen.main.bounds.width - 32, height: 54, cornerRadius: 18)
+                    skeletonShape(width: 140, height: 28, cornerRadius: 12)
+                    skeletonShape(width: nil, height: 44, cornerRadius: 12)
                 }
                 .padding(.horizontal, 16)
                 .padding(.top, 12)
                 
                 // 2. Inspiración
                 VStack(alignment: .leading, spacing: 20) {
-                    skeletonShape(width: 130, height: 26, cornerRadius: 8)
+                    skeletonShape(width: 130, height: 26, cornerRadius: 12)
                         .padding(.horizontal, 16)
                     
                     ScrollView(.horizontal, showsIndicators: false) {
@@ -33,16 +33,16 @@ struct ExploreSkeletonView: View {
                 // 3. NEXE Curated
                 VStack(alignment: .leading, spacing: 20) {
                     HStack(spacing: 12) {
-                        skeletonShape(width: 30, height: 30, cornerRadius: 15)
-                        skeletonShape(width: 180, height: 26, cornerRadius: 8)
-                        skeletonShape(width: 30, height: 30, cornerRadius: 15)
+                        skeletonShape(width: 30, height: 30, cornerRadius: 10)
+                        skeletonShape(width: 180, height: 26, cornerRadius: 12)
+                        skeletonShape(width: 30, height: 30, cornerRadius: 10)
                     }
                     .frame(maxWidth: .infinity)
                     
                     ScrollView(.horizontal, showsIndicators: false) {
                         HStack(spacing: 20) {
                             ForEach(0..<2, id: \.self) { _ in
-                                skeletonShape(width: 220, height: 300, cornerRadius: 28)
+                                skeletonShape(width: 220, height: 300, cornerRadius: 24)
                             }
                         }
                         .padding(.horizontal, 16)
@@ -51,16 +51,16 @@ struct ExploreSkeletonView: View {
                 
                 // 4. Recién llegados
                 VStack(alignment: .leading, spacing: 20) {
-                    skeletonShape(width: 220, height: 26, cornerRadius: 8)
+                    skeletonShape(width: 220, height: 26, cornerRadius: 12)
                         .padding(.horizontal, 16)
                     
                     VStack(spacing: 32) {
                         ForEach(0..<2, id: \.self) { _ in
                             VStack(alignment: .leading, spacing: 16) {
-                                skeletonShape(width: UIScreen.main.bounds.width - 32, height: 220, cornerRadius: 24)
+                                skeletonShape(width: nil, height: 220, cornerRadius: 24)
                                 VStack(alignment: .leading, spacing: 10) {
-                                    skeletonShape(width: 240, height: 24, cornerRadius: 6)
-                                    skeletonShape(width: 160, height: 16, cornerRadius: 4)
+                                    skeletonShape(width: 240, height: 24, cornerRadius: 12)
+                                    skeletonShape(width: 160, height: 16, cornerRadius: 6)
                                 }
                                 .padding(.horizontal, 8)
                             }
@@ -102,10 +102,11 @@ struct ExploreSkeletonView: View {
     }
     
     @ViewBuilder
-    private func skeletonShape(width: CGFloat, height: CGFloat, cornerRadius: CGFloat) -> some View {
+    private func skeletonShape(width: CGFloat?, height: CGFloat, cornerRadius: CGFloat) -> some View {
         RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
             .fill(Color.gray.opacity(0.1))
             .frame(width: width, height: height)
+            .frame(maxWidth: width == nil ? .infinity : nil)
             .overlay(
                 GeometryReader { geo in
                     LinearGradient(gradient: Gradient(colors: [.clear, .white.opacity(0.5), .clear]), startPoint: .leading, endPoint: .trailing)

@@ -315,7 +315,7 @@ struct ExploreView: View {
             let stores: [NearbyStoreItem] = try await SupabaseManager.shared.client
                 .from("stores")
                 .select()
-                .ilike("name", value: "%\(query)%")
+                .ilike("name", pattern: "%\(query)%")
                 .limit(10)
                 .execute()
                 .value
@@ -324,7 +324,7 @@ struct ExploreView: View {
             let products: [ProductItem] = try await SupabaseManager.shared.client
                 .from("products")
                 .select()
-                .ilike("name", value: "%\(query)%")
+                .ilike("name", pattern: "%\(query)%")
                 .limit(10)
                 .execute()
                 .value
@@ -386,8 +386,8 @@ struct ExploreView: View {
             .padding(.horizontal, 14)
             .frame(height: 44)
             .background(Color.brandBackground)
-            .clipShape(Capsule())
-            .overlay(Capsule().stroke(Color.secondary.opacity(0.3), lineWidth: 1))
+            .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+            .overlay(RoundedRectangle(cornerRadius: 12, style: .continuous).stroke(Color.secondary.opacity(0.3), lineWidth: 1))
 
             if isSearchFocused || isSearchExpanded {
                 Button("Cancelar") {

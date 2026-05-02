@@ -16,6 +16,9 @@ struct NearbyStoreItem: Codable, Identifiable {
     let latitude: Double?
     let longitude: Double?
     
+    // Campo opcional para mostrar el nombre de la categoría (se puebla tras la carga)
+    var categoryName: String? = nil
+    
     // Propiedad para ordenación numérica
     var distanceInMeters: Double {
         guard let userLoc = LocationManager.shared.userLocation,

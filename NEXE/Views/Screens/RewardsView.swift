@@ -161,7 +161,7 @@ struct RewardRow: View {
         VStack(alignment: .leading, spacing: 12) {
             // Imagen panorámica con overlay si está bloqueado
             ZStack(alignment: .topTrailing) {
-                DemoImage(urlString: reward.imageURL ?? "", cornerRadius: 20)
+                DemoImage(urlString: reward.imageURL ?? "", cornerRadius: 24)
                     .frame(height: 180)
                     .grayscale(isLocked ? 1 : 0)
                     .opacity(isLocked ? 0.6 : 1)
@@ -172,7 +172,7 @@ struct RewardRow: View {
                         .foregroundStyle(.white)
                         .padding(8)
                         .background(.black.opacity(0.3))
-                        .clipShape(Circle())
+                        .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
                         .padding(12)
                 }
                 
@@ -183,11 +183,11 @@ struct RewardRow: View {
                     .padding(.horizontal, 12)
                     .padding(.vertical, 6)
                     .background(isLocked ? Color.gray : Color.brandGreen)
-                    .clipShape(Capsule())
+                    .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
                     .padding(12)
                     .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottomTrailing)
             }
-            .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
+            .clipShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
             
             VStack(alignment: .leading, spacing: 6) {
                 Text(reward.title)

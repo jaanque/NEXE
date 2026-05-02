@@ -8,30 +8,29 @@ struct HomeSkeletonView: View {
             VStack(spacing: 32) {
                 // 1. Address Header Skeleton (Search + Points)
                 HStack(spacing: 12) {
-                    skeletonShape(width: UIScreen.main.bounds.width - 120, height: 44, cornerRadius: 22)
-                    skeletonShape(width: 80, height: 44, cornerRadius: 22)
+                    skeletonShape(width: nil, height: 44, cornerRadius: 12)
+                        .padding(.trailing, 80)
+                    skeletonShape(width: 80, height: 44, cornerRadius: 12)
                 }
                 .padding(.horizontal, 16)
                 .padding(.top, 12)
                 
                 // 2. Filter Chips Skeleton
+                // 2. Categories Skeleton (Horizontales)
                 ScrollView(.horizontal, showsIndicators: false) {
-                    HStack(spacing: 12) {
-                        ForEach(0..<5, id: \.self) { _ in
-                            skeletonShape(width: 90, height: 36, cornerRadius: 18)
+                    HStack(spacing: 8) {
+                        ForEach(0..<6, id: \.self) { _ in
+                            skeletonShape(width: 100, height: 38, cornerRadius: 12)
                         }
                     }
                     .padding(.horizontal, 16)
                 }
                 
-                // 3. Categories Skeleton
+                // 3. Filter Chips Skeleton
                 ScrollView(.horizontal, showsIndicators: false) {
-                    HStack(spacing: 24) {
-                        ForEach(0..<6, id: \.self) { _ in
-                            VStack(spacing: 8) {
-                                skeletonShape(width: 78, height: 78, cornerRadius: 39)
-                                skeletonShape(width: 50, height: 12, cornerRadius: 6)
-                            }
+                    HStack(spacing: 8) {
+                        ForEach(0..<4, id: \.self) { _ in
+                            skeletonShape(width: 90, height: 38, cornerRadius: 12)
                         }
                     }
                     .padding(.horizontal, 16)
@@ -87,13 +86,17 @@ struct HomeSkeletonView: View {
     
     @ViewBuilder
     private func skeletonVerticalCard() -> some View {
-        VStack(alignment: .leading, spacing: 12) {
+        VStack(alignment: .leading, spacing: 14) {
             // Main image area
-            skeletonShape(width: UIScreen.main.bounds.width - 32, height: 180, cornerRadius: 20)
+            skeletonShape(width: nil, height: 200, cornerRadius: 24)
                 .padding(.horizontal, 16)
             
             VStack(alignment: .leading, spacing: 10) {
-                skeletonShape(width: 240, height: 22, cornerRadius: 6)
+                HStack {
+                    skeletonShape(width: 200, height: 24, cornerRadius: 12)
+                    Spacer()
+                    skeletonShape(width: 60, height: 24, cornerRadius: 10)
+                }
                 HStack(spacing: 8) {
                     skeletonShape(width: 60, height: 14, cornerRadius: 4)
                     skeletonShape(width: 80, height: 14, cornerRadius: 4)
@@ -105,10 +108,11 @@ struct HomeSkeletonView: View {
     }
     
     @ViewBuilder
-    private func skeletonShape(width: CGFloat, height: CGFloat, cornerRadius: CGFloat) -> some View {
+    private func skeletonShape(width: CGFloat?, height: CGFloat, cornerRadius: CGFloat) -> some View {
         RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
             .fill(Color.gray.opacity(isAnimating ? 0.08 : 0.16))
             .frame(width: width, height: height)
+            .frame(maxWidth: width == nil ? .infinity : nil)
     }
 }
 

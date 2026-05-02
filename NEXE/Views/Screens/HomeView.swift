@@ -82,13 +82,13 @@ struct HomeView: View {
                     .transition(.opacity.animation(.easeOut(duration: 0.3)))
             } else {
                 ScrollView(.vertical, showsIndicators: false) {
-                    VStack(spacing: 16) {
+                    VStack(spacing: 24) {
                         welcomeHeader
                             .padding(.horizontal, 16)
                             .padding(.top, 12)
                         
                         if !categories.isEmpty {
-                            VStack(spacing: 4) {
+                            VStack(spacing: 14) {
                                 categoryScrollSection
                                 HomeFilterChipsView(
                                     sortOrder: $sortOrder,
@@ -96,8 +96,8 @@ struct HomeView: View {
                                     showOnlyPoints: $showOnlyPoints,
                                     showOnlyOffers: $showOnlyOffers
                                 )
+                                .padding(.bottom, 4)
                             }
-                            .padding(.top, 8)
                             .background(Color.brandBackground)
                             .zIndex(1)
                         }
@@ -156,8 +156,8 @@ struct HomeView: View {
                         .foregroundStyle(.primary)
                         .frame(width: 44, height: 44)
                         .background(Color.brandBackground)
-                        .clipShape(Circle())
-                        .overlay(Circle().stroke(Color.secondary.opacity(0.3), lineWidth: 1))
+                        .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+                        .overlay(RoundedRectangle(cornerRadius: 12, style: .continuous).stroke(Color.secondary.opacity(0.3), lineWidth: 1))
                 }
                 .buttonStyle(.plain)
                 
@@ -172,8 +172,8 @@ struct HomeView: View {
                     .padding(.horizontal, 12)
                     .frame(height: 44)
                     .background(Color.brandBackground)
-                    .clipShape(Capsule())
-                    .overlay(Capsule().stroke(Color.secondary.opacity(0.3), lineWidth: 1))
+                    .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+                    .overlay(RoundedRectangle(cornerRadius: 12, style: .continuous).stroke(Color.secondary.opacity(0.3), lineWidth: 1))
                 }
                 .buttonStyle(.plain)
             }
@@ -214,7 +214,13 @@ struct HomeView: View {
                 .value
             
             await MainActor.run {
-                self.nearbyStores = fetchedStores
+                self.nearbyStores = fetchedStores.map { store in
+                    var updated = store
+                    if let catId = store.categoryId {
+                        updated.categoryName = self.categories.first(where: { $0.id == catId })?.name
+                    }
+                    return updated
+                }
                 // Si el filtro de ofertas no está activo, ya podemos quitar el loading
                 if !showOnlyOffers {
                     self.isFilterLoading = false
@@ -238,6 +244,10 @@ struct HomeView: View {
                     self.nearbyStores = fetchedStores.map { store in
                         var updated = store
                         updated.hasOffers = offerStoreIds.contains(store.id)
+                        // Preservar nombre de categoría
+                        if let catId = store.categoryId {
+                            updated.categoryName = self.categories.first(where: { $0.id == catId })?.name
+                        }
                         return updated
                     }
                     self.isFilterLoading = false
@@ -260,7 +270,7 @@ struct HomeView: View {
 
     private var categoryScrollSection: some View {
         ScrollView(.horizontal, showsIndicators: false) {
-            HStack(spacing: 24) {
+            HStack(spacing: 8) {
                 ForEach(categories, id: \.id) { category in
                     let isSelected = selectedCategoryId == category.id
                     CategoryBlobView(category: category, isSelected: isSelected)
@@ -287,8 +297,6 @@ struct HomeView: View {
                 }
             }
             .padding(.horizontal, 16)
-            .padding(.top, 8)
-            .padding(.bottom, 8) // Mantengo 8pt de padding inferior bajo el texto
         }
         .background(Color.brandBackground)
     }

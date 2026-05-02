@@ -8,17 +8,17 @@ struct ProfileSkeletonView: View {
             VStack(spacing: 24) {
                 // 1. Cabecera Skeleton
                 VStack(spacing: 16) {
-                    skeletonShape(width: 80, height: 80, cornerRadius: 40) // Avatar
+                    skeletonShape(width: 80, height: 80, cornerRadius: 12) // Avatar
                     
                     VStack(spacing: 8) {
-                        skeletonShape(width: 120, height: 20, cornerRadius: 6) // Name
-                        skeletonShape(width: 100, height: 14, cornerRadius: 4) // Status
+                        skeletonShape(width: 120, height: 20, cornerRadius: 12) // Name
+                        skeletonShape(width: 100, height: 14, cornerRadius: 6) // Status
                     }
                 }
                 .padding(.top, 20)
                 
                 // 2. Banner de Puntos Skeleton
-                skeletonShape(width: UIScreen.main.bounds.width - 40, height: 90, cornerRadius: 16)
+                skeletonShape(width: nil, height: 90, cornerRadius: 12)
                 
                 // 3. Secciones Simples Skeletons
                 VStack(spacing: 24) {
@@ -29,7 +29,7 @@ struct ProfileSkeletonView: View {
                         }
                     }
                     .background(Color.white.opacity(0.5))
-                    .clipShape(RoundedRectangle(cornerRadius: 12))
+                    .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
                     
                     // Grupo 2
                     VStack(spacing: 1) {
@@ -38,13 +38,13 @@ struct ProfileSkeletonView: View {
                         }
                     }
                     .background(Color.white.opacity(0.5))
-                    .clipShape(RoundedRectangle(cornerRadius: 12))
+                    .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
                     
                     // Botón Salir
-                    skeletonShape(width: UIScreen.main.bounds.width - 40, height: 56, cornerRadius: 12)
+                    skeletonShape(width: nil, height: 56, cornerRadius: 12)
                 }
                 
-                skeletonShape(width: 80, height: 12, cornerRadius: 4) // Version
+                skeletonShape(width: 80, height: 12, cornerRadius: 6) // Version
                     .padding(.top, 20)
             }
             .padding(20)
@@ -69,10 +69,11 @@ struct ProfileSkeletonView: View {
     }
     
     @ViewBuilder
-    private func skeletonShape(width: CGFloat, height: CGFloat, cornerRadius: CGFloat) -> some View {
+    private func skeletonShape(width: CGFloat?, height: CGFloat, cornerRadius: CGFloat) -> some View {
         RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
             .fill(Color.gray.opacity(0.1))
             .frame(width: width, height: height)
+            .frame(maxWidth: width == nil ? .infinity : nil)
             .overlay(
                 GeometryReader { geo in
                     LinearGradient(gradient: Gradient(colors: [.clear, .white.opacity(0.5), .clear]), startPoint: .leading, endPoint: .trailing)

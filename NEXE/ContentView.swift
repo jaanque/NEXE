@@ -25,7 +25,7 @@ struct ContentView: View {
                     }
                 }
                 .tabItem {
-                    Label("Inicio", systemImage: "house")
+                    Image(systemName: "house")
                 }
                 .tag(AppTab.home)
 
@@ -33,7 +33,7 @@ struct ContentView: View {
                     RewardsView()
                 }
                 .tabItem {
-                    Label("Recompensas", systemImage: "gift")
+                    Image(systemName: "gift")
                 }
                 .tag(AppTab.rewards)
 
@@ -41,7 +41,7 @@ struct ContentView: View {
                     ExploreView(focusToken: exploreFocusToken)
                 }
                 .tabItem {
-                    Label("Explorar", systemImage: "magnifyingglass")
+                    Image(systemName: "magnifyingglass")
                 }
                 .tag(AppTab.explore)
 
@@ -49,7 +49,7 @@ struct ContentView: View {
                     OrdersView(selectedTab: $selectedTab)
                 }
                 .tabItem {
-                    Label("Pedidos", systemImage: "scroll")
+                    Image(systemName: "scroll")
                 }
                 .tag(AppTab.orders)
 
@@ -57,7 +57,7 @@ struct ContentView: View {
                     ProfileView(selectedTab: $selectedTab)
                 }
                 .tabItem {
-                    Label("Perfil", systemImage: "person.crop.circle")
+                    Image(systemName: "person.crop.circle")
                 }
                 .badge(FavoritesManager.shared.newCount)
                 .tag(AppTab.profile)
