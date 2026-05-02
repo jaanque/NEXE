@@ -8,14 +8,14 @@ struct StoreDetailSkeletonView: View {
             ScrollView(showsIndicators: false) {
                 VStack(alignment: .leading, spacing: 0) {
                     
-                    // Header Section Skeleton (Thinner)
+                    // Header Section Skeleton (Integrated Metadata)
                     VStack(alignment: .leading, spacing: 14) {
                         HStack(spacing: 12) {
                             skeletonShape(width: 44, height: 44, cornerRadius: 22)
                                 .opacity(0.2)
                             
                             HStack(spacing: 12) {
-                                skeletonShape(width: 40, height: 40, cornerRadius: 0)
+                                skeletonShape(width: 44, height: 44, cornerRadius: 4)
                                 skeletonShape(width: 150, height: 24, cornerRadius: 8)
                             }
                             
@@ -29,6 +29,16 @@ struct StoreDetailSkeletonView: View {
                         // Search Bar Skeleton
                         skeletonShape(width: nil, height: 50, cornerRadius: 16)
                             .opacity(0.15)
+                            
+                        // Metadata Row Skeleton
+                        HStack(spacing: 12) {
+                            skeletonShape(width: 80, height: 22, cornerRadius: 11)
+                            skeletonShape(width: 60, height: 22, cornerRadius: 11)
+                            skeletonShape(width: 70, height: 22, cornerRadius: 11)
+                            Spacer()
+                            skeletonShape(width: 60, height: 22, cornerRadius: 11)
+                        }
+                        .opacity(0.15)
                     }
                     .padding(.horizontal, 16)
                     .padding(.bottom, 14)
@@ -36,27 +46,11 @@ struct StoreDetailSkeletonView: View {
                     
                     Divider() 
                     
-                    // Info Secundaria Skeleton
-                    VStack(alignment: .leading, spacing: 16) {
-                        HStack(spacing: 12) {
-                            skeletonShape(width: 100, height: 28, cornerRadius: 14)
-                            skeletonShape(width: 80, height: 28, cornerRadius: 14)
-                        }
-                        
-                        HStack(spacing: 12) {
-                            skeletonShape(width: 120, height: 28, cornerRadius: 14)
-                            skeletonShape(width: 140, height: 28, cornerRadius: 14)
-                        }
-                    }
-                    .padding(.horizontal, 24)
-                    .padding(.vertical, 24)
-                    
-                    Divider().padding(.horizontal, 24).opacity(0.6)
-                    
                     // Products List Skeleton
                     VStack(alignment: .leading, spacing: 18) {
                         skeletonShape(width: 180, height: 26, cornerRadius: 8)
                             .padding(.horizontal, 24)
+                            .padding(.top, 20)
                         
                         ForEach(0..<4, id: \.self) { _ in
                             HStack(spacing: 16) {

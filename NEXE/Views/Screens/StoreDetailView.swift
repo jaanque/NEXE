@@ -44,8 +44,13 @@ struct StoreDetailView: View {
                             // Logo y Nombre
                             HStack(spacing: 12) {
                                     if let logoURL = store.logoURL {
-                                        DemoImage(urlString: logoURL, cornerRadius: 0)
-                                            .frame(width: 40, height: 40)
+                                        Color.white.opacity(0.1)
+                                            .frame(width: 44, height: 44)
+                                            .cornerRadius(4)
+                                            .overlay(
+                                                DemoImage(urlString: logoURL, cornerRadius: 4)
+                                            )
+                                            .clipped()
                                     }
                                 
                                 Text(store.name)
@@ -101,6 +106,82 @@ struct StoreDetailView: View {
                             RoundedRectangle(cornerRadius: 16, style: .continuous)
                                 .stroke(Color.white.opacity(0.1), lineWidth: 1)
                         )
+                        
+                        // Metadata Scrollable Row (Discreet)
+                        ScrollView(.horizontal, showsIndicators: false) {
+                            HStack(spacing: 8) {
+                                // Rating
+                                HStack(spacing: 4) {
+                                    Image(systemName: "star.fill")
+                                        .font(.system(size: 8))
+                                        .foregroundStyle(.white)
+                                    Text(String(format: "%.1f", store.rating))
+                                        .font(.system(size: 11, weight: .bold))
+                                    Text("(\(store.reviewsCount))")
+                                        .font(.system(size: 10))
+                                        .opacity(0.7)
+                                }
+                                .foregroundStyle(.white)
+                                .padding(.horizontal, 8)
+                                .padding(.vertical, 4)
+                                .background(Color.white.opacity(0.15))
+                                .clipShape(Capsule())
+                                
+                                // Distance
+                                HStack(spacing: 4) {
+                                    Image(systemName: "mappin.and.ellipse")
+                                        .font(.system(size: 8))
+                                    Text(store.distance)
+                                }
+                                .font(.system(size: 11, weight: .bold))
+                                .foregroundStyle(.white)
+                                .padding(.horizontal, 8)
+                                .padding(.vertical, 4)
+                                .background(Color.white.opacity(0.15))
+                                .clipShape(Capsule())
+                                
+                                // Category (if exists)
+                                if let cat = store.categoryName {
+                                    Text(cat)
+                                        .font(.system(size: 11, weight: .bold))
+                                        .foregroundStyle(.white)
+                                        .padding(.horizontal, 8)
+                                        .padding(.vertical, 4)
+                                        .background(Color.white.opacity(0.15))
+                                        .clipShape(Capsule())
+                                }
+                                
+                                // Status Badge (Open/Closed)
+                                HStack(spacing: 4) {
+                                    Circle()
+                                        .fill(store.isOpen ? Color.green : Color.red)
+                                        .frame(width: 5, height: 5)
+                                    Text(store.isOpen ? "Abierto" : "Cerrado")
+                                        .font(.system(size: 11, weight: .bold))
+                                        .foregroundStyle(.white)
+                                }
+                                .padding(.horizontal, 8)
+                                .padding(.vertical, 4)
+                                .background(Color.white.opacity(0.15))
+                                .clipShape(Capsule())
+
+                                // Points Badge (Minimalist)
+                                if store.givesPoints {
+                                    HStack(spacing: 4) {
+                                        Image(systemName: "star.circle.fill")
+                                            .font(.system(size: 10))
+                                        Text("Puntos")
+                                            .font(.system(size: 11, weight: .bold))
+                                    }
+                                    .foregroundStyle(.white)
+                                    .padding(.horizontal, 8)
+                                    .padding(.vertical, 4)
+                                    .background(Color.white.opacity(0.15))
+                                    .clipShape(Capsule())
+                                }
+                            }
+                            .padding(.horizontal, 4)
+                        }
                     }
                     .padding(.horizontal, 16)
                     .padding(.bottom, 14)
@@ -108,81 +189,6 @@ struct StoreDetailView: View {
                     .ignoresSafeArea(edges: .top)
                     
                     Divider()
-                    
-                    // Info Secundaria
-                    VStack(alignment: .leading, spacing: 16) {
-                        HStack(spacing: 12) {
-                            // Rating Badge
-                            HStack(spacing: 4) {
-                                Image(systemName: "star.fill")
-                                    .font(.system(size: 10))
-                                    .foregroundStyle(.orange)
-                                Text(String(format: "%.1f", store.rating))
-                                    .fontWeight(.bold)
-                                Text("(\(store.reviewsCount))")
-                                    .font(.system(size: 11))
-                                    .opacity(0.5)
-                            }
-                            .font(.system(size: 14, design: .rounded))
-                            .padding(.horizontal, 12)
-                            .padding(.vertical, 6)
-                            .background(Color.black.opacity(0.05))
-                            .clipShape(Capsule())
-
-                            HStack(spacing: 6) {
-                                Image(systemName: "mappin.and.ellipse")
-                                    .font(.system(size: 12))
-                                Text(store.distance)
-                            }
-                            .font(.system(size: 14, weight: .medium))
-                            .padding(.horizontal, 12)
-                            .padding(.vertical, 6)
-                            .background(Color.black.opacity(0.05))
-                            .clipShape(Capsule())
-                        }
-                        
-                        HStack(spacing: 12) {
-                            if store.givesPoints {
-                                HStack(spacing: 4) {
-                                    Image(systemName: "star.circle.fill")
-                                    Text("Puntos NEXE")
-                                }
-                                .font(.system(size: 14, weight: .bold))
-                                .foregroundStyle(Color.brandGranate)
-                                .padding(.horizontal, 12)
-                                .padding(.vertical, 6)
-                                .background(Color.brandGranate.opacity(0.08))
-                                .clipShape(Capsule())
-                            }
-                            
-                            // Estado del Local
-                            if !store.isOpen, let nextTime = store.nextOpeningTime {
-                                HStack(spacing: 6) {
-                                    Circle().fill(Color.red).frame(width: 8, height: 8)
-                                    Text("Cerrado • Abre \(nextTime)")
-                                        .font(.system(size: 13, weight: .bold))
-                                }
-                                .foregroundStyle(.red)
-                                .padding(.horizontal, 12)
-                                .padding(.vertical, 8)
-                                .background(Color.red.opacity(0.08))
-                                .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
-                            } else {
-                                HStack(spacing: 6) {
-                                    Circle().fill(Color.green).frame(width: 8, height: 8)
-                                    Text("Abierto ahora")
-                                        .font(.system(size: 13, weight: .bold))
-                                }
-                                .foregroundStyle(.green)
-                                .padding(.horizontal, 12)
-                                .padding(.vertical, 8)
-                                .background(Color.green.opacity(0.08))
-                                .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
-                            }
-                        }
-                    }
-                    .padding(.horizontal, 24)
-                    .padding(.vertical, 24)
                     
                     // ── Sección de Productos ──
                     VStack(alignment: .leading, spacing: 20) {

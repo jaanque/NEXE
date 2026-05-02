@@ -17,6 +17,9 @@ struct HomeView: View {
     @State private var curatedStores: [NearbyStoreItem] = []
     @State private var homeRewards: [RewardItem] = []
     @State private var selectedReward: RewardItem?
+    @State private var featuredStore: NearbyStoreItem?
+    @State private var featuredProducts: [ProductItem] = []
+    @State private var newStoreLogos: [NearbyStoreItem] = []
     private let inspirations = InspirationItem.samples
 
     private let locationManager = LocationManager.shared    
@@ -115,8 +118,16 @@ struct HomeView: View {
                             inspirationsSection
                                 .padding(.top, 8)
                             
+                            if let store = featuredStore, !featuredProducts.isEmpty {
+                                FeaturedStoreSectionView(store: store, products: featuredProducts)
+                                    .padding(.top, 16)
+                            }
+                            
                             curatedSection
                                 .padding(.top, 8)
+                            
+                            newLogosSection
+                                .padding(.top, 24)
                             
                             homeRewardsSection
                                 .padding(.top, 24)
@@ -151,6 +162,7 @@ struct HomeView: View {
                 await fetchCuratedStores()
                 await fetchHomeRewards()
                 await fetchNewStores()
+                await fetchNewStoreLogos()
                 
                 if isLoading {
                     withAnimation { isLoading = false; isAppearing = true }
@@ -301,6 +313,51 @@ struct HomeView: View {
             print("Error crítico cargando locales: \(error)")
             await MainActor.run { self.isFilterLoading = false }
         }
+        
+        // Cargar local destacado (Featured)
+        if let store = nearbyStores.randomElement() {
+            await fetchFeaturedData(for: store)
+        }
+    }
+
+    private func fetchFeaturedData(for store: NearbyStoreItem) async {
+        do {
+            let fetched: [ProductItem] = try await SupabaseManager.shared.client
+                .from("products")
+                .select()
+                .eq("store_id", value: store.id)
+                .limit(6)
+                .execute()
+                .value
+            
+            if fetched.isEmpty {
+                // Si no tiene productos, intentamos con otro local aleatorio (máximo un reintento simple)
+                if let another = nearbyStores.filter({ $0.id != store.id }).randomElement() {
+                    let secondFetched: [ProductItem] = try await SupabaseManager.shared.client
+                        .from("products")
+                        .select()
+                        .eq("store_id", value: another.id)
+                        .limit(6)
+                        .execute()
+                        .value
+                    
+                    if !secondFetched.isEmpty {
+                        await MainActor.run {
+                            self.featuredStore = another
+                            self.featuredProducts = secondFetched
+                        }
+                        return
+                    }
+                }
+            }
+            
+            await MainActor.run {
+                self.featuredStore = store
+                self.featuredProducts = fetched
+            }
+        } catch {
+            print("Error fetching featured data: \(error)")
+        }
     }
 
     private func fetchCuratedStores() async {
@@ -339,6 +396,31 @@ struct HomeView: View {
             }
         } catch {
             print("Error fetching new stores: \(error)")
+        }
+    }
+    
+    private func fetchNewStoreLogos() async {
+        do {
+            // Calculamos la fecha de hace 2 semanas
+            let twoWeeksAgo = Calendar.current.date(byAdding: .day, value: -14, to: Date()) ?? Date()
+            
+            // Traemos todos los locales y filtramos en Swift (más seguro con formatos ISO)
+            let fetched: [NearbyStoreItem] = try await SupabaseManager.shared.client
+                .from("stores")
+                .select()
+                .order("created_at", ascending: false)
+                .execute()
+                .value
+            
+            let filtered = fetched.filter { $0.createdAt >= twoWeeksAgo && $0.logoURL != nil }
+            
+            await MainActor.run {
+                withAnimation(.spring()) {
+                    self.newStoreLogos = filtered
+                }
+            }
+        } catch {
+            print("Error fetching new store logos: \(error)")
         }
     }
 
@@ -544,6 +626,41 @@ struct HomeView: View {
                         }
                     }
                     .padding(.horizontal, 16)
+                }
+            }
+        }
+    }
+
+    private var newLogosSection: some View {
+        Group {
+            if !newStoreLogos.isEmpty {
+                VStack(alignment: .leading, spacing: 16) {
+                    Text("Nuevas aperturas")
+                        .font(.title2.weight(.bold))
+                        .padding(.horizontal, 16)
+                    
+                    ScrollView(.horizontal, showsIndicators: false) {
+                        HStack(spacing: 20) {
+                            ForEach(newStoreLogos) { store in
+                                NavigationLink(destination: StoreDetailView(store: store)) {
+                                    VStack(spacing: 8) {
+                                        DemoImage(urlString: store.logoURL ?? "", cornerRadius: 15)
+                                            .frame(width: 64, height: 64)
+                                            .background(Color.white)
+                                            .clipShape(RoundedRectangle(cornerRadius: 15, style: .continuous))
+                                            .shadow(color: Color.black.opacity(0.05), radius: 5, y: 2)
+                                        
+                                        Text(store.name)
+                                            .font(.caption2.weight(.medium))
+                                            .foregroundStyle(.secondary)
+                                            .lineLimit(1)
+                                            .frame(width: 70)
+                                    }
+                                }
+                            }
+                        }
+                        .padding(.horizontal, 16)
+                    }
                 }
             }
         }
