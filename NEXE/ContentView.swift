@@ -24,19 +24,12 @@ struct ContentView: View {
             }
             .tag(AppTab.home)
 
-            NavigationStack {
-                RewardsView()
-            }
-            .tabItem {
-                Image(systemName: "gift")
-            }
-            .tag(AppTab.rewards)
 
             NavigationStack {
                 OrdersView(selectedTab: $selectedTab)
             }
             .tabItem {
-                Image(systemName: "scroll")
+                Image(systemName: "gift")
             }
             .tag(AppTab.orders)
 

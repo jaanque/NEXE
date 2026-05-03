@@ -1,6 +1,6 @@
 import SwiftUI
 
-struct HomeCategory: Codable, Identifiable {
+struct HomeCategory: Codable, Identifiable, Equatable {
     let id: UUID
     let name: String
     let emoji: String

@@ -8,143 +8,124 @@ struct HomeView: View {
     @State private var animatedPoints: Int = 0
     @State private var isAppearing = false 
     @State private var isLoading = true
-    @State private var deliveryOption: Int = 0 // 0: Recogida, 1: Domicilio
     @State private var categories: [HomeCategory] = []
     @State private var nearbyStores: [NearbyStoreItem] = []
     @State private var newStores: [NearbyStoreItem] = []
-    @State private var selectedCategoryId: UUID? 
     @State private var isFilterLoading = false
     @State private var curatedStores: [NearbyStoreItem] = []
-    @State private var homeRewards: [RewardItem] = []
-    @State private var selectedReward: RewardItem?
     @State private var featuredStore: NearbyStoreItem?
     @State private var featuredProducts: [ProductItem] = []
-    @State private var newStoreLogos: [NearbyStoreItem] = []
-    private let inspirations = InspirationItem.samples
+    @State private var deliveryType: String = "Recogida en tienda"
+
+    @State private var categoriesAreSticky: Bool = false
+    @State private var isRefreshing: Bool = false
+    @State private var navigateToAllNearby: Bool = false
 
     private let locationManager = LocationManager.shared    
     let onExploreTap: () -> Void
 
-    enum SortOrder {
-        case closest
-        case farthest
-        case bestRated
-        case worstRated
-    }
-    
-    @State private var sortOrder: SortOrder = .closest
-    @State private var showOnlyOpen: Bool = false
-    @State private var showOnlyPoints: Bool = false
-    @State private var showOnlyOffers: Bool = false
+    /// Scroll threshold at which the categories transition to sticky pills
+    private let stickyThreshold: CGFloat = 20
+    /// Height of the in-flow category area (must match the frame)
+    private let categoryAreaHeight: CGFloat = 108
 
-    private var filteredStores: [NearbyStoreItem] {
-        var stores = nearbyStores
-        if let selectedId = selectedCategoryId {
-            stores = stores.filter { $0.categoryId == selectedId }
-        }
-        
-        // Filtro "Abierto Ahora"
-        if showOnlyOpen {
-            stores = stores.filter { $0.isOpen }
-        }
-        
-        // Filtro "Acepta Puntos"
-        if showOnlyPoints {
-            stores = stores.filter { $0.givesPoints }
-        }
-        
-        // Filtro "Ofertas"
-        if showOnlyOffers {
-            stores = stores.filter { $0.hasOffers }
-        }
-        
-        // Ordenar según selección
-        switch sortOrder {
-        case .closest:
-            return stores.sorted { $0.distanceInMeters < $1.distanceInMeters }
-        case .farthest:
-            return stores.sorted { $0.distanceInMeters > $1.distanceInMeters }
-        case .bestRated:
-            return stores.sorted { a, b in
-                if a.rating != b.rating {
-                    return a.rating > b.rating
-                }
-                return a.reviewsCount > b.reviewsCount
-            }
-        case .worstRated:
-            return stores.sorted { a, b in
-                if a.rating != b.rating {
-                    return a.rating < b.rating
-                }
-                return a.reviewsCount < b.reviewsCount
-            }
-        }
-    }
 
-    private var isFilterActive: Bool {
-        selectedCategoryId != nil || showOnlyOpen || showOnlyPoints || showOnlyOffers
-    }
 
     var body: some View {
-        ZStack {
-            Color.brandBackground.ignoresSafeArea()
-            
+        Group {
             if isLoading {
                 HomeSkeletonView()
                     .transition(.opacity.animation(.easeOut(duration: 0.3)))
             } else {
-                ScrollView(.vertical, showsIndicators: false) {
-                    VStack(spacing: 24) {
+                VStack(spacing: 0) {
+                    // ── Fixed Header ──
+                    VStack(spacing: 0) {
                         welcomeHeader
                             .padding(.horizontal, 16)
-                            .padding(.top, 12)
+                            .padding(.top, 8)
+                            .padding(.bottom, 8)
                         
-                        if !categories.isEmpty {
-                            VStack(spacing: 14) {
-                                categoryScrollSection
-                                HomeFilterChipsView(
-                                    sortOrder: $sortOrder,
-                                    showOnlyOpen: $showOnlyOpen,
-                                    showOnlyPoints: $showOnlyPoints,
-                                    showOnlyOffers: $showOnlyOffers
-                                )
-                                .padding(.bottom, 4)
-                            }
-                        }
-                        
-                        storesSection
-                        
-                        if !isFilterActive {
-                            inspirationsSection
-                                .padding(.top, 8)
-                            
-                            if let store = featuredStore, !featuredProducts.isEmpty {
-                                FeaturedStoreSectionView(store: store, products: featuredProducts)
-                                    .padding(.top, 16)
-                            }
-                            
-                            curatedSection
-                                .padding(.top, 8)
-                            
-                            newLogosSection
-                                .padding(.top, 24)
-                            
-                            homeRewardsSection
-                                .padding(.top, 24)
-                            newStoresSection
-                                .padding(.top, 16)
+                        // Sticky compact pills — slide in when categories scroll past header
+                        if categoriesAreSticky {
+                            stickyPillCategories
+                                .transition(.move(edge: .top).combined(with: .opacity))
                         }
                     }
-                    .padding(.bottom, 32)
+                    .background(Color.brandBackground)
+                    .zIndex(1)
+                    .animation(.spring(response: 0.28, dampingFraction: 0.88), value: categoriesAreSticky)
+                    
+                    // ── Scrollable Content ──
+                    ScrollView(.vertical, showsIndicators: false) {
+                        VStack(spacing: 0) {
+                            // ── Pull-to-Refresh Indicator ──
+                            GeometryReader { geo in
+                                let pullOffset = geo.frame(in: .global).minY
+                                HStack {
+                                    Spacer()
+                                    if isRefreshing {
+                                        ProgressView()
+                                            .tint(.secondary)
+                                    }
+                                    Spacer()
+                                }
+                                .onChange(of: pullOffset) { _, newValue in
+                                    if newValue > 200 && !isRefreshing {
+                                        triggerRefresh()
+                                    }
+                                }
+                            }
+                            .frame(height: isRefreshing ? 40 : 0)
+                            .animation(.easeInOut(duration: 0.2), value: isRefreshing)
+                            
+                            VStack(spacing: 24) {
+                                // ── Category Area ──
+                                ZStack {
+                                    inFlowCategories
+                                        .opacity(categoriesAreSticky ? 0 : 1)
+                                }
+                                .frame(height: categoryAreaHeight)
+                                .background(
+                                    GeometryReader { geo in
+                                        Color.clear
+                                            .onChange(of: geo.frame(in: .global).minY) { _, newMinY in
+                                                let shouldBeSticky = newMinY < stickyThreshold + 60
+                                                if shouldBeSticky != categoriesAreSticky {
+                                                    withAnimation(.spring(response: 0.28, dampingFraction: 0.88)) {
+                                                        categoriesAreSticky = shouldBeSticky
+                                                    }
+                                                }
+                                            }
+                                    }
+                                )
+                                
+                                storesSection
+                                
+                                // ── Discovery Sections ──
+                                if let store = featuredStore, !featuredProducts.isEmpty {
+                                    FeaturedStoreSectionView(
+                                        store: store,
+                                        products: featuredProducts,
+                                        categoryEmoji: categories.first(where: { $0.id == store.categoryId })?.emoji
+                                    )
+                                    .padding(.top, 16)
+                                }
+                                
+                                curatedSection
+                                    .padding(.top, 8)
+                                
+
+                                newStoresSection
+                                    .padding(.top, 16)
+                            }
+                            .padding(.bottom, 32)
+                        }
+                    }
                 }
                 .background(Color.brandBackground)
-                .animation(.spring(response: 0.4, dampingFraction: 0.8), value: selectedCategoryId)
-                .animation(.easeInOut(duration: 0.3), value: isFilterLoading)
             }
         }
-        .sheet(item: $selectedReward) { reward in
-            RewardCheckoutView(reward: reward)
-        }
+        .background(Color.brandBackground.ignoresSafeArea())
         .navigationBarTitleDisplayMode(.large)
         .onAppear {
             Task {
@@ -160,14 +141,17 @@ struct HomeView: View {
                 
                 // Estos los refrescamos siempre o al menos aseguramos que corran
                 await fetchCuratedStores()
-                await fetchHomeRewards()
+
                 await fetchNewStores()
-                await fetchNewStoreLogos()
+                await fetchFeaturedData()
                 
                 if isLoading {
                     withAnimation { isLoading = false; isAppearing = true }
                 }
             }
+        }
+        .navigationDestination(isPresented: $navigateToAllNearby) {
+            NearbyStoresFullView(stores: nearbyStores)
         }
         .onChange(of: authViewModel.userProfile) { _, newProfile in
             if let points = newProfile?.points { animatePoints(to: points) }
@@ -181,28 +165,27 @@ struct HomeView: View {
     private var welcomeHeader: some View {
         HStack(alignment: .center) {
             Menu {
-                Button {
-                    deliveryOption = 0
-                } label: {
-                    HStack {
-                        Text("Recogida")
-                        if deliveryOption == 0 { Image(systemName: "checkmark") }
-                    }
+                Button("Recogida en tienda") {
+                    deliveryType = "Recogida en tienda"
+                    UIImpactFeedbackGenerator(style: .light).impactOccurred()
                 }
                 
-                Button { } label: {
-                    Text("A domicilio (Próximamente)")
-                }
-                .disabled(true)
+                Button("Llevar a casa") { }
+                    .disabled(true)
             } label: {
                 HStack(spacing: 4) {
-                    Text(deliveryOption == 0 ? "Recogida" : "A domicilio")
+                    Text(deliveryType)
                         .font(.system(size: 16, weight: .bold))
                     Image(systemName: "chevron.down")
                         .font(.system(size: 12, weight: .bold))
                 }
                 .foregroundStyle(.black)
+                .padding(.vertical, 8)
+                .padding(.horizontal, 12)
+                .background(Color.black.opacity(0.04))
+                .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
             }
+            .buttonStyle(.plain)
             
             Spacer()
             
@@ -274,10 +257,8 @@ struct HomeView: View {
                     }
                     return updated
                 }
-                // Si el filtro de ofertas no está activo, ya podemos quitar el loading
-                if !showOnlyOffers {
-                    self.isFilterLoading = false
-                }
+                // Ya podemos quitar el loading
+                self.isFilterLoading = false
             }
 
             // 2. Cargar datos de productos para verificar ofertas de forma asíncrona
@@ -313,47 +294,43 @@ struct HomeView: View {
             print("Error crítico cargando locales: \(error)")
             await MainActor.run { self.isFilterLoading = false }
         }
-        
-        // Cargar local destacado (Featured)
-        if let store = nearbyStores.randomElement() {
-            await fetchFeaturedData(for: store)
-        }
     }
 
-    private func fetchFeaturedData(for store: NearbyStoreItem) async {
+    private func fetchFeaturedData() async {
         do {
-            let fetched: [ProductItem] = try await SupabaseManager.shared.client
-                .from("products")
+            // Traemos una muestra de locales para elegir uno con productos
+            let allStores: [NearbyStoreItem] = try await SupabaseManager.shared.client
+                .from("stores")
                 .select()
-                .eq("store_id", value: store.id)
-                .limit(6)
+                .limit(20)
                 .execute()
                 .value
             
-            if fetched.isEmpty {
-                // Si no tiene productos, intentamos con otro local aleatorio (máximo un reintento simple)
-                if let another = nearbyStores.filter({ $0.id != store.id }).randomElement() {
-                    let secondFetched: [ProductItem] = try await SupabaseManager.shared.client
-                        .from("products")
-                        .select()
-                        .eq("store_id", value: another.id)
-                        .limit(6)
-                        .execute()
-                        .value
-                    
-                    if !secondFetched.isEmpty {
-                        await MainActor.run {
-                            self.featuredStore = another
-                            self.featuredProducts = secondFetched
-                        }
-                        return
+            for store in allStores.shuffled() {
+                let products: [ProductItem] = try await SupabaseManager.shared.client
+                    .from("products")
+                    .select()
+                    .eq("store_id", value: store.id)
+                    .not("original_price", operator: .is, value: "null") // Solo productos con descuento
+                    .limit(6)
+                    .execute()
+                    .value
+                
+                // Filtrar también en Swift para asegurar que original > actual (por si acaso)
+                let discountedProducts = products.filter { p in
+                    if let original = p.originalPrice {
+                        return original > p.price
                     }
+                    return false
                 }
-            }
-            
-            await MainActor.run {
-                self.featuredStore = store
-                self.featuredProducts = fetched
+                
+                if !discountedProducts.isEmpty {
+                    await MainActor.run {
+                        self.featuredStore = store
+                        self.featuredProducts = discountedProducts
+                    }
+                    return
+                }
             }
         } catch {
             print("Error fetching featured data: \(error)")
@@ -399,58 +376,26 @@ struct HomeView: View {
         }
     }
     
-    private func fetchNewStoreLogos() async {
-        do {
-            // Calculamos la fecha de hace 2 semanas
-            let twoWeeksAgo = Calendar.current.date(byAdding: .day, value: -14, to: Date()) ?? Date()
-            
-            // Traemos todos los locales y filtramos en Swift (más seguro con formatos ISO)
-            let fetched: [NearbyStoreItem] = try await SupabaseManager.shared.client
-                .from("stores")
-                .select()
-                .order("created_at", ascending: false)
-                .execute()
-                .value
-            
-            let filtered = fetched.filter { $0.createdAt >= twoWeeksAgo && $0.logoURL != nil }
-            
-            await MainActor.run {
-                withAnimation(.spring()) {
-                    self.newStoreLogos = filtered
-                }
-            }
-        } catch {
-            print("Error fetching new store logos: \(error)")
-        }
-    }
 
-    private func fetchHomeRewards() async {
-        do {
-            let fetched: [RewardItem] = try await SupabaseManager.shared.client
-                .from("rewards")
-                .select("id, title, points_required, image_url, stock, stores(name)")
-                .limit(10)
-                .execute()
-                .value
+
+    private func triggerRefresh() {
+        guard !isRefreshing else { return }
+        UIImpactFeedbackGenerator(style: .medium).impactOccurred()
+        withAnimation { isRefreshing = true }
+        
+        Task {
+            async let cats: () = fetchCategories()
+            async let stores: () = fetchStores()
+            async let curated: () = fetchCuratedStores()
+            async let newS: () = fetchNewStores()
+            async let featured: () = fetchFeaturedData()
+            _ = await (cats, stores, curated, newS, featured)
             
-            let userPoints = authViewModel.userProfile?.points ?? 0
-            let sorted = fetched.sorted { a, b in
-                let canAffordA = a.points <= userPoints
-                let canAffordB = b.points <= userPoints
-                
-                if canAffordA != canAffordB {
-                    return canAffordA // Los que puede pagar van primero
-                }
-                return a.points < b.points // Si ambos están en el mismo estado, ordenar por puntos
-            }
-            
+            // Minimum display time so the user sees the spinner
+            try? await Task.sleep(for: .milliseconds(600))
             await MainActor.run {
-                withAnimation(.spring()) {
-                    self.homeRewards = sorted
-                }
+                withAnimation { isRefreshing = false }
             }
-        } catch {
-            print("Error fetching home rewards: \(error)")
         }
     }
 
@@ -460,116 +405,120 @@ struct HomeView: View {
         }
     }
 
-    private var categoryScrollSection: some View {
+    // ── In-Flow Categories (Large vertical icons) ──
+    private var inFlowCategories: some View {
         ScrollView(.horizontal, showsIndicators: false) {
-            HStack(spacing: 8) {
-                ForEach(categories, id: \.id) { category in
-                    let isSelected = selectedCategoryId == category.id
-                    CategoryBlobView(category: category, isSelected: isSelected)
-                        .onTapGesture {
-                            withAnimation(.spring(response: 0.35, dampingFraction: 0.7)) {
-                                if selectedCategoryId == category.id {
-                                    selectedCategoryId = nil
-                                } else {
-                                    selectedCategoryId = category.id
-                                }
-                                
-                            }
-                            isFilterLoading = true
-                            Task {
-                                try? await Task.sleep(nanoseconds: 400_000_000)
-                                await MainActor.run {
-                                    withAnimation(.easeInOut(duration: 0.3)) {
-                                        isFilterLoading = false
-                                    }
-                                }
-                            }
-                            UISelectionFeedbackGenerator().selectionChanged()
+            HStack(spacing: 16) {
+                ForEach(categories) { category in
+                    NavigationLink(destination: CategoryResultsView(category: category)) {
+                        VStack(spacing: 8) {
+                            Text(category.emoji)
+                                .font(.system(size: 34))
+                            
+                            Text(category.name)
+                                .font(.system(size: 11, weight: .medium))
+                                .foregroundStyle(Color.secondary)
+                                .lineLimit(1)
                         }
+                        .padding(.vertical, 8)
+                        .padding(.horizontal, 4)
+                        .frame(minWidth: 74)
+                    }
+                    .buttonStyle(.plain)
                 }
             }
             .padding(.horizontal, 16)
+            .padding(.bottom, 8)
         }
+        .frame(height: 100)
+    }
+    
+    // ── Sticky Pill Categories (Compact, dropdown-style) ──
+    private var stickyPillCategories: some View {
+        ScrollView(.horizontal, showsIndicators: false) {
+            HStack(spacing: 8) {
+                ForEach(categories) { category in
+                    NavigationLink(destination: CategoryResultsView(category: category)) {
+                        HStack(spacing: 6) {
+                            Text(category.emoji)
+                                .font(.system(size: 15))
+                            Text(category.name)
+                                .font(.system(size: 14, weight: .semibold))
+                                .foregroundStyle(.black)
+                                .lineLimit(1)
+                        }
+                        .padding(.vertical, 8)
+                        .padding(.horizontal, 12)
+                        .background(
+                            RoundedRectangle(cornerRadius: 10, style: .continuous)
+                                .fill(Color.black.opacity(0.04))
+                        )
+                    }
+                    .buttonStyle(.plain)
+                }
+            }
+            .padding(.horizontal, 16)
+            .padding(.vertical, 4)
+        }
+        .frame(height: 48)
+        .padding(.bottom, 4)
     }
 
     private var storesSection: some View {
         VStack(alignment: .leading, spacing: 20) {
-            Text(isFilterActive ? "Resultados" : "Cerca de ti")
-                .font(.title2.weight(.bold))
-                .padding(.horizontal, 16)
-            
-            if isFilterLoading {
-                if isFilterActive {
-                    // Skeleton vertical
-                    VStack(spacing: 28) {
-                        ForEach(0..<3, id: \.self) { _ in
-                            StoreSkeletonCard(isVertical: true)
-                                .frame(maxWidth: .infinity)
-                                .padding(.horizontal, 16)
-                        }
-                    }
-                } else {
-                    // Skeleton horizontal
-                    ScrollView(.horizontal, showsIndicators: false) {
-                        HStack(spacing: 16) {
-                            ForEach(0..<3, id: \.self) { _ in
-                                StoreSkeletonCard()
-                            }
-                        }
-                        .padding(.horizontal, 16)
-                    }
+            HStack(alignment: .lastTextBaseline) {
+                Text("Cerca de ti")
+                    .font(.title2.weight(.bold))
+                Spacer()
+                NavigationLink(destination: NearbyStoresFullView(stores: nearbyStores)) {
+                    Text("Ver más")
+                        .font(.subheadline.weight(.semibold))
+                        .foregroundStyle(Color.brandBlue)
                 }
-            } else if filteredStores.isEmpty {
+            }
+            .padding(.horizontal, 16)
+            
+            if nearbyStores.isEmpty {
                 VStack(spacing: 12) {
                     Image(systemName: "storefront")
                         .font(.largeTitle)
                         .foregroundStyle(.tertiary)
-                    Text("No hay locales con estos criterios")
+                    Text("No hay locales cercanos")
                         .font(.subheadline)
                         .foregroundStyle(.secondary)
                 }
                 .frame(maxWidth: .infinity)
                 .padding(.vertical, 40)
             } else {
-                if isFilterActive {
-                    // Lista Vertical de Resultados
-                    VStack(spacing: 24) {
-                        ForEach(filteredStores) { store in
-                            NearbyStoreCardVerticalView(store: store)
+                ScrollView(.horizontal, showsIndicators: false) {
+                    HStack(spacing: 20) {
+                        ForEach(nearbyStores.prefix(10)) { store in 
+                            NearbyStoreCardHorizontalView(store: store)
+                        }
+                        
+                        if nearbyStores.count >= 10 {
+                            Button {
+                                navigateToAllNearby = true
+                            } label: {
+                                VStack(spacing: 12) {
+                                    Image(systemName: "arrow.right.circle.fill")
+                                        .font(.system(size: 40))
+                                        .foregroundStyle(Color.brandBlue)
+                                    
+                                    Text("Ver más")
+                                        .font(.system(size: 14, weight: .bold))
+                                        .foregroundStyle(Color.brandBlue)
+                                }
+                                .frame(width: 140, height: 245)
+                                .background(Color.brandBlue.opacity(0.05))
+                                .clipShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
+                            }
+                            .buttonStyle(.plain)
                         }
                     }
                     .padding(.horizontal, 16)
-                } else {
-                    // Carrusel Horizontal de Descubrimiento
-                    ScrollView(.horizontal, showsIndicators: false) {
-                        HStack(spacing: 20) {
-                            ForEach(filteredStores) { store in 
-                                NearbyStoreCardHorizontalView(store: store)
-                            }
-                        }
-                        .padding(.horizontal, 16)
-                        .padding(.bottom, 10)
-                    }
+                    .padding(.bottom, 10)
                 }
-            }
-        }
-        .animation(.easeInOut(duration: 0.3), value: isFilterLoading)
-        .animation(.spring(response: 0.4, dampingFraction: 0.8), value: isFilterActive)
-    }
-
-    private var inspirationsSection: some View {
-        VStack(alignment: .leading, spacing: 20) {
-            Text("Inspiración")
-                .font(.title2.weight(.bold))
-                .padding(.horizontal, 16)
-            
-            ScrollView(.horizontal, showsIndicators: false) {
-                HStack(spacing: 30) {
-                    ForEach(inspirations) { item in
-                        InspirationCardView(item: item)
-                    }
-                }
-                .padding(.horizontal, 25)
             }
         }
     }
@@ -631,125 +580,5 @@ struct HomeView: View {
         }
     }
 
-    private var newLogosSection: some View {
-        Group {
-            if !newStoreLogos.isEmpty {
-                VStack(alignment: .leading, spacing: 16) {
-                    Text("Nuevas aperturas")
-                        .font(.title2.weight(.bold))
-                        .padding(.horizontal, 16)
-                    
-                    ScrollView(.horizontal, showsIndicators: false) {
-                        HStack(spacing: 20) {
-                            ForEach(newStoreLogos) { store in
-                                NavigationLink(destination: StoreDetailView(store: store)) {
-                                    VStack(spacing: 8) {
-                                        DemoImage(urlString: store.logoURL ?? "", cornerRadius: 15)
-                                            .frame(width: 64, height: 64)
-                                            .background(Color.white)
-                                            .clipShape(RoundedRectangle(cornerRadius: 15, style: .continuous))
-                                            .shadow(color: Color.black.opacity(0.05), radius: 5, y: 2)
-                                        
-                                        Text(store.name)
-                                            .font(.caption2.weight(.medium))
-                                            .foregroundStyle(.secondary)
-                                            .lineLimit(1)
-                                            .frame(width: 70)
-                                    }
-                                }
-                            }
-                        }
-                        .padding(.horizontal, 16)
-                    }
-                }
-            }
-        }
-    }
-
-    private var homeRewardsSection: some View {
-        Group {
-            if !homeRewards.isEmpty {
-                VStack(alignment: .leading, spacing: 20) {
-                    VStack(alignment: .leading, spacing: 6) {
-                        Text("Recompensas NEXE")
-                            .font(.title2.weight(.bold))
-                        Text("Canjea tus puntos por productos exclusivos")
-                            .font(.subheadline)
-                            .foregroundStyle(.secondary)
-                    }
-                    .padding(.horizontal, 16)
-                    
-                    ScrollView(.horizontal, showsIndicators: false) {
-                        HStack(spacing: 16) {
-                            ForEach(homeRewards) { reward in
-                                HomeRewardCard(reward: reward)
-                                    .onTapGesture {
-                                        selectedReward = reward
-                                    }
-                            }
-                        }
-                        .padding(.horizontal, 16)
-                        .padding(.bottom, 10)
-                }
-            }
-        }
-    }
-}
 }
 
-struct HomeRewardCard: View {
-    @Environment(AuthViewModel.self) private var authViewModel
-    let reward: RewardItem
-    
-    var isLocked: Bool {
-        (authViewModel.userProfile?.points ?? 0) < reward.points
-    }
-    
-    var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            ZStack(alignment: .topTrailing) {
-                AsyncImage(url: URL(string: reward.imageURL ?? "")) { img in
-                    img.resizable().aspectRatio(contentMode: .fill)
-                } placeholder: {
-                    Color.gray.opacity(0.1)
-                }
-                .frame(width: 240, height: 150)
-                .grayscale(isLocked ? 1 : 0)
-                .opacity(isLocked ? 0.6 : 1)
-                .clipShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
-                
-                if isLocked {
-                    Image(systemName: "lock.fill")
-                        .font(.system(size: 14, weight: .bold))
-                        .foregroundStyle(.white)
-                        .padding(8)
-                        .background(.black.opacity(0.3))
-                        .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
-                        .padding(12)
-                        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
-                }
-                
-                Text("\(reward.points) pts")
-                    .font(.caption.bold())
-                    .foregroundStyle(.white)
-                    .padding(.horizontal, 10)
-                    .padding(.vertical, 5)
-                    .background(isLocked ? Color.gray : Color.brandGreen)
-                    .clipShape(Capsule())
-                    .padding(12)
-            }
-            
-            VStack(alignment: .leading, spacing: 4) {
-                Text(reward.title)
-                    .font(.headline)
-                    .lineLimit(1)
-                    .foregroundStyle(isLocked ? .secondary : .primary)
-                HStack(spacing: 4) {
-                    Image(systemName: "storefront").font(.caption)
-                    Text(reward.storeName).font(.caption).foregroundStyle(.secondary)
-                }
-            }
-            .padding(.horizontal, 4)
-        }
-    }
-}

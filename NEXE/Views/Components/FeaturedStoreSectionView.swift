@@ -3,10 +3,12 @@ import SwiftUI
 struct FeaturedStoreSectionView: View {
     let store: NearbyStoreItem
     let products: [ProductItem]
+    let categoryEmoji: String?
     
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
-            // ── Cabecera ──
+            // ... (rest of the body remains same, just passing categoryEmoji if needed)
+            // ...
             HStack(spacing: 12) {
                 if let logoURL = store.logoURL {
                     DemoImage(urlString: logoURL, cornerRadius: 8)
@@ -53,35 +55,61 @@ struct FeaturedStoreSectionView: View {
     
     private var brandCard: some View {
         NavigationLink(destination: StoreDetailView(store: store)) {
-            VStack(alignment: .leading, spacing: 12) {
-                // Logo pequeño arriba
-                if let logoURL = store.logoURL {
-                    DemoImage(urlString: logoURL, cornerRadius: 4)
-                        .frame(width: 32, height: 32)
-                        .background(Color.white)
-                        .clipShape(RoundedRectangle(cornerRadius: 4))
-                        .padding(.top, 16)
-                        .padding(.horizontal, 16)
+            ZStack(alignment: .bottomLeading) {
+                // Background Mosaic Pattern (Mosaico)
+                if let emoji = categoryEmoji {
+                    Canvas { context, size in
+                        let spacing: CGFloat = 40
+                        let columns = Int(size.width / spacing) + 2
+                        let rows = Int(size.height / spacing) + 2
+                        
+                        for row in 0..<rows {
+                            for col in 0..<columns {
+                                var innerContext = context
+                                let x = CGFloat(col) * spacing + (row % 2 == 0 ? 0 : spacing/2)
+                                let y = CGFloat(row) * spacing
+                                
+                                innerContext.opacity = 0.35 // Aumentado de 0.15
+                                innerContext.translateBy(x: x, y: y)
+                                innerContext.rotate(by: .degrees(Double((row + col) % 4) * 15))
+                                
+                                innerContext.draw(Text(emoji).font(.system(size: 24)), at: .zero) // Aumentado de 18
+                            }
+                        }
+                    }
+                    .allowsHitTesting(false)
                 }
                 
-                Spacer()
-                
-                // Texto central
-                Text("Compra a los mejores precios")
-                    .font(.system(size: 18, weight: .black, design: .rounded))
-                    .foregroundStyle(.white)
-                    .multilineTextAlignment(.leading)
-                    .padding(.horizontal, 16)
-                
-                Spacer()
-                
-                // Fecha o Info inferior
-                Text("Promoción semanal")
-                    .font(.system(size: 12, weight: .bold))
-                    .foregroundStyle(.white)
-                    .padding(.vertical, 8)
-                    .frame(maxWidth: .infinity)
-                    .background(Color.black.opacity(0.1))
+                VStack(alignment: .leading, spacing: 12) {
+                    // Logo pequeño arriba
+                    if let logoURL = store.logoURL {
+                        DemoImage(urlString: logoURL, cornerRadius: 4)
+                            .frame(width: 32, height: 32)
+                            .background(Color.white)
+                            .clipShape(RoundedRectangle(cornerRadius: 4))
+                            .padding(.top, 16)
+                            .padding(.horizontal, 16)
+                    }
+                    
+                    Spacer()
+                    
+                    // Texto central
+                    Text("Compra a los mejores precios")
+                        .font(.system(size: 18, weight: .black, design: .rounded))
+                        .foregroundStyle(.white)
+                        .multilineTextAlignment(.leading)
+                        .padding(.horizontal, 16)
+                    
+                    Spacer()
+                    
+                    // Fecha o Info inferior
+                    Text("Promoción semanal")
+                        .font(.system(size: 12, weight: .bold))
+                        .foregroundStyle(.white)
+                        .padding(.vertical, 8)
+                        .frame(maxWidth: .infinity)
+                        .background(Color.black.opacity(0.1))
+                }
             }
             .frame(width: 160, height: 240)
             .background(Color(hex: store.brandColorHex ?? "#006CEB"))
@@ -118,20 +146,24 @@ struct FeaturedProductCard: View {
             
             VStack(alignment: .leading, spacing: 4) {
                 // Precios
-                HStack(alignment: .firstTextBaseline, spacing: 6) {
+                HStack(alignment: .firstTextBaseline, spacing: 4) {
                     Text(product.price.formatted(.currency(code: "EUR")))
                         .font(.system(size: 16, weight: .bold))
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.7)
                     
                     if let original = product.originalPrice {
                         Text(original.formatted(.currency(code: "EUR")))
                             .font(.system(size: 12))
                             .foregroundStyle(.secondary)
                             .strikethrough()
+                            .lineLimit(1)
+                            .minimumScaleFactor(0.8)
                     }
                 }
                 
                 // Descuento (Badge amarillo)
-                if let original = product.originalPrice {
+                if let original = product.originalPrice, original > product.price {
                     let discount = Int((1 - (product.price / original)) * 100)
                     Text("\(discount)% off")
                         .font(.system(size: 10, weight: .black))

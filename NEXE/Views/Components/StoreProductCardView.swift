@@ -43,6 +43,8 @@ struct StoreProductCardView: View {
                 Text(product.price.formatted(.currency(code: "EUR")))
                     .font(.system(size: 15, weight: .bold))
                     .foregroundStyle(product.originalPrice != nil ? .red : .primary)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.7)
                 
                 if product.rewardPoints > 0 {
                     HStack(spacing: 4) {

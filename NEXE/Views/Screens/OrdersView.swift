@@ -5,7 +5,6 @@ import Supabase
 struct OrdersView: View {
     @Environment(AuthViewModel.self) private var authViewModel
     @Binding var selectedTab: AppTab
-    @State private var selectedOrderType = 1 // 0: Pedidos, 1: Recompensas (Default Rewards now)
     @State private var redemptions: [RedemptionRecord] = []
     @State private var isLoadingRedemptions = false
     @State private var selectedRedemption: RedemptionRecord?
@@ -17,62 +16,42 @@ struct OrdersView: View {
                 
                 if authViewModel.currentUser == nil {
                     LoggedOutView(
-                        icon: "scroll",
-                        title: "Tus pedidos te esperan",
-                        description: "Inicia sesión para ver tu historial de compras y el estado de tus canjes."
+                        icon: "gift",
+                        title: "Tus recompensas te esperan",
+                        description: "Inicia sesión para ver tu historial de canjes y las recompensas que has reclamado."
                     )
                 } else {
                     VStack(spacing: 0) {
-                        // Selector Nativo Segmentado
-                        Picker("Tipo de pedido", selection: $selectedOrderType) {
-                            Text("Pedidos").tag(0)
-                            Text("Recompensas").tag(1)
-                        }
-                        .pickerStyle(.segmented)
-                        .padding(.horizontal, 20)
-                        .padding(.top, 12)
-                        .padding(.bottom, 20)
-                        
-                        if selectedOrderType == 0 {
-                            // PEDIDOS NORMALES (Empty State por ahora)
+                        if isLoadingRedemptions {
+                            OrdersSkeletonView()
+                        } else if redemptions.isEmpty {
                             emptyState(
-                                icon: "scroll",
-                                title: "No tienes pedidos",
-                                description: "Aquí aparecerán tus compras y pedidos realizados en los locales de la ciudad."
+                                icon: "gift",
+                                title: "Sin recompensas",
+                                description: "Aquí aparecerán los cupones y premios que hayas canjeado con tus puntos."
                             )
                         } else {
-                            // RECOMPENSAS
-                            if isLoadingRedemptions {
-                                OrdersSkeletonView()
-                            } else if redemptions.isEmpty {
-                                emptyState(
-                                    icon: "gift",
-                                    title: "Sin recompensas",
-                                    description: "Aquí aparecerán los cupones y premios que hayas canjeado con tus puntos."
-                                )
-                            } else {
-                                ScrollView {
-                                    LazyVStack(spacing: 24) {
-                                        ForEach(redemptions) { redemption in
-                                            RedemptionRow(redemption: redemption)
-                                                .onTapGesture {
-                                                    selectedRedemption = redemption
-                                                }
-                                        }
-                                        .padding(.top, 16)
+                            ScrollView {
+                                LazyVStack(spacing: 24) {
+                                    ForEach(redemptions) { redemption in
+                                        RedemptionRow(redemption: redemption)
+                                            .onTapGesture {
+                                                selectedRedemption = redemption
+                                            }
                                     }
-                                    .padding(.horizontal, 16)
+                                    .padding(.top, 16)
                                 }
-                                .refreshable {
-                                    await fetchRedemptions()
-                                }
+                                .padding(.horizontal, 16)
+                            }
+                            .refreshable {
+                                await fetchRedemptions()
                             }
                         }
                     }
                 }
 
             }
-            .navigationTitle("Mis Pedidos")
+            .navigationTitle("Reclamados")
             .navigationBarTitleDisplayMode(.inline)
             .sheet(item: $selectedRedemption) { redemption in
                 RedemptionDetailView(redemption: redemption)
